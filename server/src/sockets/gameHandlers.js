@@ -30,7 +30,14 @@ function registerGameHandlers(io, socket) {
     }
     entry.playerSockets.set(name, socket.id);
     socket.join(gameCode);
-    await Game.updateOne({ gameCode }, { $push: { players: { name, score: 0, scoreHistory: [] } } });
+    try {
+      await Game.updateOne({ gameCode }, { $push: { players: { name, score: 0, scoreHistory: [] } } });
+    } catch (err) {
+      // Roll back in-memory state if DB write fails
+      entry.state.players = entry.state.players.filter(p => p.name !== name);
+      entry.playerSockets.delete(name);
+      return socket.emit('error:generic', { message: 'Failed to join game' });
+    }
     io.to(gameCode).emit('game:playerJoined', { players: entry.state.players.map(p => ({ name: p.name, score: p.score })) });
     socket.emit('player:joined', { name, gameCode });
   });
@@ -89,16 +96,24 @@ function registerGameHandlers(io, socket) {
     const entry = _getHostEntry(socket);
     if (!entry) return;
     const gameCode = _gameCodeFor(socket);
-    try { entry.state.judge(result); } catch { return; }
+    // Capture buzzedBy before judge() clears it
+    const judgedPlayer = entry.state.buzzedBy;
+    try { entry.state.judge(result); } catch (err) {
+      return socket.emit('error:generic', { message: err.message });
+    }
     const pub = entry.state.getPublicState();
 
-    for (const p of entry.state.players) {
-      const lastEntry = p.scoreHistory[p.scoreHistory.length - 1];
-      if (lastEntry) {
-        await Game.updateOne(
-          { gameCode, 'players.name': p.name },
-          { $set: { 'players.$.score': p.score }, $push: { 'players.$.scoreHistory': lastEntry } }
-        );
+    // Only persist the judged player's updated score + new history entry
+    if (judgedPlayer) {
+      const player = entry.state.players.find(p => p.name === judgedPlayer);
+      if (player) {
+        const lastEntry = player.scoreHistory[player.scoreHistory.length - 1];
+        if (lastEntry) {
+          await Game.updateOne(
+            { gameCode, 'players.name': judgedPlayer },
+            { $set: { 'players.$.score': player.score }, $push: { 'players.$.scoreHistory': lastEntry } }
+          );
+        }
       }
     }
     await Game.updateOne({ gameCode }, { $set: { revealedClues: pub.revealedClues } });
