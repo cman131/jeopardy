@@ -5,7 +5,9 @@ const store = new Map(); // gameCode → { state, hostSocketId, playerSockets }
 function generateGameCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   let code;
+  let attempts = 0;
   do {
+    if (++attempts > 1000) throw new Error('Could not generate unique game code');
     code = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   } while (store.has(code));
   return code;
@@ -22,7 +24,11 @@ function get(gameCode) {
 }
 
 function remove(gameCode) {
-  store.delete(gameCode);
+  return store.delete(gameCode);
 }
 
-module.exports = { create, get, remove, generateGameCode };
+function clear() {
+  store.clear();
+}
+
+module.exports = { create, get, remove, clear };

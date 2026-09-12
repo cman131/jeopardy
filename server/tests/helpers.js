@@ -1,5 +1,6 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
+const gameStore = require('../src/game/gameStore');
 
 let mongod;
 
@@ -16,6 +17,7 @@ async function stopDb() {
 async function clearDb() {
   const collections = mongoose.connection.collections;
   for (const key in collections) await collections[key].deleteMany({});
+  gameStore.clear();
 }
 
 function makeTestBoard(overrides = {}) {

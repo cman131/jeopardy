@@ -60,6 +60,11 @@ describe('PUT /api/boards/:id', () => {
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Updated');
   });
+
+  test('returns 404 for unknown id', async () => {
+    const res = await request(app).put('/api/boards/000000000000000000000000').send({ name: 'X' });
+    expect(res.status).toBe(404);
+  });
 });
 
 describe('DELETE /api/boards/:id', () => {
@@ -69,5 +74,10 @@ describe('DELETE /api/boards/:id', () => {
     expect(del.status).toBe(204);
     const get = await request(app).get(`/api/boards/${created.body._id}`);
     expect(get.status).toBe(404);
+  });
+
+  test('returns 404 for unknown id', async () => {
+    const res = await request(app).delete('/api/boards/000000000000000000000000');
+    expect(res.status).toBe(404);
   });
 });
