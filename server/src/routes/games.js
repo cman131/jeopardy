@@ -8,6 +8,7 @@ const router = express.Router();
 router.post('/', async (req, res) => {
   try {
     const { boardId } = req.body;
+    if (!boardId) return res.status(400).json({ error: 'boardId is required' });
     const board = await Board.findById(boardId);
     if (!board) return res.status(400).json({ error: 'Board not found' });
 
@@ -15,7 +16,8 @@ router.post('/', async (req, res) => {
     const game = await Game.create({ boardId, gameCode });
     res.status(201).json({ gameCode, gameId: game._id });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.name === 'CastError') return res.status(400).json({ error: 'Invalid boardId' });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -25,7 +27,8 @@ router.get('/:id/history', async (req, res) => {
     if (!game || game.status !== 'finished') return res.status(404).json({ error: 'Not found' });
     res.json(game);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.name === 'CastError') return res.status(404).json({ error: 'Not found' });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -35,7 +38,7 @@ router.get('/:gameCode', async (req, res) => {
     if (!game) return res.status(404).json({ error: 'Not found' });
     res.json(game);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
