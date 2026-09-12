@@ -225,4 +225,18 @@ describe('GameState — getPublicState / getHostState', () => {
     const host = gs.getHostState();
     expect(host.currentClue.answer).toBe('A0-0');
   });
+
+  test('mutating returned revealedClues does not affect internal state', () => {
+    const gs = new GameState(makeBoard());
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.startGame();
+    gs.selectClue(0, 0);
+    gs.unlock();
+    gs.buzz('Alice');
+    gs.judge('correct');
+    const pub = gs.getPublicState();
+    pub.revealedClues.push({ categoryIndex: 99, clueIndex: 99 });
+    expect(gs.revealedClues).toHaveLength(1); // internal state unchanged
+  });
 });

@@ -9,6 +9,7 @@ class GameState {
     this.buzzedBy = null;
     this.buzzedPlayers = [];
     this.currentPicker = null;
+    this.totalClues = board.categories.reduce((s, c) => s + c.clues.length, 0);
   }
 
   addPlayer(name) {
@@ -43,6 +44,7 @@ class GameState {
   }
 
   buzz(playerName) {
+    if (!this.players.some(p => p.name === playerName)) return false;
     if (this.phase !== 'clue') return false;
     if (this.buzzerState !== 'open') return false;
     if (this.buzzedPlayers.includes(playerName)) return false;
@@ -53,6 +55,7 @@ class GameState {
   }
 
   judge(result) {
+    if (result !== 'correct' && result !== 'incorrect') throw new Error('Invalid result');
     if (this.phase !== 'judging') throw new Error('Invalid phase');
     const { categoryIndex, clueIndex } = this.currentClue;
     const clue = this.board.categories[categoryIndex].clues[clueIndex];
@@ -81,6 +84,7 @@ class GameState {
   }
 
   endGame() {
+    if (this.currentClue) this._closeClue();
     this.phase = 'finished';
   }
 
@@ -93,15 +97,14 @@ class GameState {
   }
 
   _allRevealed() {
-    const total = this.board.categories.reduce((s, c) => s + c.clues.length, 0);
-    return this.revealedClues.length >= total;
+    return this.revealedClues.length >= this.totalClues;
   }
 
   getPublicState() {
     return {
       phase: this.phase,
       players: this.players.map(p => ({ name: p.name, score: p.score })),
-      revealedClues: this.revealedClues,
+      revealedClues: [...this.revealedClues],
       buzzerState: this.buzzerState,
       buzzedBy: this.buzzedBy,
       currentPicker: this.currentPicker,
@@ -117,7 +120,7 @@ class GameState {
 
   getHostState() {
     const state = this.getPublicState();
-    if (state.currentClue && this.currentClue) {
+    if (state.currentClue) {
       state.currentClue.answer =
         this.board.categories[this.currentClue.categoryIndex].clues[this.currentClue.clueIndex].answer;
     }
