@@ -3,7 +3,7 @@
 export default function GameBoard({ categoryNames = [], revealedClues = [], onSelect, activeClue, round = 1 }) {
   const values = [1, 2, 3, 4, 5].map(i => i * (round === 1 ? 200 : 400));
   function isRevealed(ci, qi) {
-    return revealedClues.some(r => r.categoryIndex === ci && r.clueIndex === qi);
+    return revealedClues.some(r => r.round === round && r.categoryIndex === ci && r.clueIndex === qi);
   }
 
   function isActive(ci, qi) {

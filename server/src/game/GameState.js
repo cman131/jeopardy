@@ -131,6 +131,7 @@ class GameState {
     if (this.phase !== 'final-wager') throw new Error('Invalid phase');
     const player = this.players.find(p => p.name === playerName);
     if (!player) throw new Error('Player not found');
+    if (this.finalWagers.has(playerName)) throw new Error('Wager already submitted');
     const maxWager = Math.max(player.score, 1000);
     if (typeof wager !== 'number' || wager < 0 || wager > maxWager) throw new Error('Invalid wager');
     this.finalWagers.set(playerName, wager);
@@ -163,6 +164,7 @@ class GameState {
   judgeFinal(playerName, correct) {
     if (this.phase !== 'final-judging') throw new Error('Invalid phase');
     if (!this.players.find(p => p.name === playerName)) throw new Error('Player not found');
+    if (this.finalJudgments.has(playerName)) throw new Error('Player already judged');
     this.finalJudgments.set(playerName, correct);
     if (this.finalJudgments.size >= this.players.length) {
       this.finalRevealOrder = [...this.players]

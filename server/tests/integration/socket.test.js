@@ -86,6 +86,26 @@ describe('player:join', () => {
   });
 });
 
+async function createStartedGame() {
+  const { gameCode } = await setupGame();
+  const host = await makeClient();
+  const player1 = await makeClient();
+  const player2 = await makeClient();
+
+  host.emit('host:join', { gameCode });
+  await waitFor(host, 'host:joined');
+
+  player1.emit('player:join', { gameCode, name: 'Alice' });
+  await waitFor(player1, 'player:joined');
+  player2.emit('player:join', { gameCode, name: 'Bob' });
+  await waitFor(player2, 'player:joined');
+
+  host.emit('host:startGame', { gameCode });
+  await waitFor(host, 'game:started');
+
+  return { host, player1, player2, gameCode };
+}
+
 describe('full game flow', () => {
   test('correct answer: scores player, returns to board', async () => {
     const { gameCode } = await setupGame();
@@ -161,4 +181,147 @@ describe('full game flow', () => {
     alice.disconnect();
     bob.disconnect();
   });
+});
+
+describe('multi-round socket flow', () => {
+  // Wait for one of multiple possible events; resolves with { event, data }
+  function waitForEvent(socket, eventOrEvents, timeout = 5000) {
+    const events = Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents];
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`Timeout waiting for ${events}`)), timeout);
+      const cleanup = () => {
+        clearTimeout(timer);
+        events.forEach(e => socket.off(e, handlers[e]));
+      };
+      const handlers = {};
+      events.forEach(e => {
+        handlers[e] = (data) => { cleanup(); resolve({ event: e, data }); };
+        socket.on(e, handlers[e]);
+      });
+    });
+  }
+
+  // Exhausts all 30 clues in the current round by selecting and skipping each one.
+  // Resolves when the last skip produces game:betweenRounds or game:finalWager.
+  async function exhaustRound(host, player1) {
+    for (let ci = 0; ci < 6; ci++) {
+      for (let qi = 0; qi < 5; qi++) {
+        const clueRevealed = waitForEvent(player1, 'game:clueRevealed');
+        host.emit('host:selectClue', { categoryIndex: ci, clueIndex: qi });
+        await clueRevealed;
+        const done = waitForEvent(player1, ['game:scored', 'game:betweenRounds', 'game:finalWager']);
+        host.emit('host:skipClue');
+        await done;
+      }
+    }
+  }
+
+  // Drive a game from started → final-wager phase.
+  async function reachFinalWager(host, player1) {
+    // Exhaust round 1 → between-rounds
+    await exhaustRound(host, player1);
+    // Start round 2
+    const round2Started = waitForEvent(player1, 'game:round2Started');
+    host.emit('host:startRound2');
+    await round2Started;
+    // Exhaust round 2 → final-wager
+    await exhaustRound(host, player1);
+  }
+
+  test('host:startRound2 emits game:round2Started with currentRound: 2 and 6 categories', async () => {
+    const { host, player1, player2 } = await createStartedGame();
+    await exhaustRound(host, player1);
+    const resultP = waitForEvent(player1, 'game:round2Started', 5000);
+    host.emit('host:startRound2');
+    const { data } = await resultP;
+    expect(data.currentRound).toBe(2);
+    expect(data.categoryNames).toHaveLength(6);
+    host.disconnect();
+    player1.disconnect();
+    player2.disconnect();
+  }, 15000);
+
+  test('player:submitWager emits game:wagerSubmitted; host:closeWagers emits game:finalClue', async () => {
+    const { host, player1, player2 } = await createStartedGame();
+    await reachFinalWager(host, player1);
+
+    // Submit one wager from player1 (Alice)
+    const wagerSubmittedP = waitForEvent(player1, 'game:wagerSubmitted', 5000);
+    player1.emit('player:submitWager', { wager: 200 });
+    const { data: submittedData } = await wagerSubmittedP;
+    expect(submittedData.playerName).toBeDefined();
+
+    // Force-close wagers
+    const finalClueP = waitForEvent(player1, 'game:finalClue', 5000);
+    host.emit('host:closeWagers');
+    const { data: clueData } = await finalClueP;
+    expect(clueData.clue).toBeDefined();
+    expect(clueData.category).toBeDefined();
+
+    host.disconnect();
+    player1.disconnect();
+    player2.disconnect();
+  }, 40000);
+
+  test('player:submitAnswer emits game:answerSubmitted; host:closeAnswers emits game:finalJudging', async () => {
+    const { host, player1, player2 } = await createStartedGame();
+    await reachFinalWager(host, player1);
+
+    const finalClueP = waitForEvent(player1, 'game:finalClue', 5000);
+    host.emit('host:closeWagers');
+    await finalClueP;
+
+    // Submit one answer
+    const answerSubmittedP = waitForEvent(player1, 'game:answerSubmitted', 5000);
+    player1.emit('player:submitAnswer', { answer: 'What is a test?' });
+    const { data: ansData } = await answerSubmittedP;
+    expect(ansData.playerName).toBeDefined();
+
+    // Force-close answers
+    const judgingP = waitForEvent(player1, 'game:finalJudging', 5000);
+    host.emit('host:closeAnswers');
+    await judgingP;
+
+    host.disconnect();
+    player1.disconnect();
+    player2.disconnect();
+  }, 40000);
+
+  test('host:revealNext emits game:finalReveal then game:finished after last player', async () => {
+    const { host, player1, player2 } = await createStartedGame();
+    await reachFinalWager(host, player1);
+
+    // Close wagers and answers
+    const finalClueP = waitForEvent(player1, 'game:finalClue', 5000);
+    host.emit('host:closeWagers');
+    await finalClueP;
+
+    const judgingP = waitForEvent(player1, 'game:finalJudging', 5000);
+    host.emit('host:closeAnswers');
+    await judgingP;
+
+    // Judge both players (host:closeAnswers transitions to final-judging)
+    host.emit('host:judgeFinal', { playerName: 'Alice', correct: true });
+    host.emit('host:judgeFinal', { playerName: 'Bob', correct: false });
+
+    // Wait briefly for judgments to be processed, then reveal
+    await new Promise(r => setTimeout(r, 100));
+
+    // Reveal first player
+    const reveal1P = waitForEvent(player1, 'game:finalReveal', 5000);
+    host.emit('host:revealNext');
+    const { data: rev1 } = await reveal1P;
+    expect(rev1.playerName).toBeDefined();
+    expect(rev1.players).toHaveLength(2);
+
+    // Reveal second player — should also trigger game:finished
+    const finishedP = waitForEvent(player1, 'game:finished', 5000);
+    host.emit('host:revealNext');
+    const { data: finishedData } = await finishedP;
+    expect(finishedData.players).toHaveLength(2);
+
+    host.disconnect();
+    player1.disconnect();
+    player2.disconnect();
+  }, 40000);
 });
