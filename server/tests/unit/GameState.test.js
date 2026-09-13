@@ -236,6 +236,59 @@ describe('selectClue', () => {
   });
 });
 
+describe('between-rounds', () => {
+  function makeR1CompletedGs() {
+    const board = makeBoard();
+    const gs = new GameState(board);
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.start();
+    // Reveal all 30 round-1 clues by selecting each, skipping
+    for (let ci = 0; ci < 6; ci++) {
+      for (let qi = 0; qi < 5; qi++) {
+        gs.selectClue(ci, qi);
+        gs.skipClue();
+      }
+    }
+    return gs;
+  }
+
+  test('phase transitions to between-rounds after all 30 round-1 clues revealed', () => {
+    const gs = makeR1CompletedGs();
+    expect(gs.phase).toBe('between-rounds');
+  });
+
+  test('startRound2 transitions to board phase with currentRound = 2', () => {
+    const gs = makeR1CompletedGs();
+    gs.startRound2();
+    expect(gs.phase).toBe('board');
+    expect(gs.currentRound).toBe(2);
+  });
+
+  test('startRound2 sets currentPicker to player with highest score', () => {
+    const gs = makeR1CompletedGs();
+    gs.players[1].score = 1000; // Bob has more
+    gs.startRound2();
+    expect(gs.currentPicker).toBe('Bob');
+  });
+
+  test('startRound2 throws if not in between-rounds phase', () => {
+    const gs = new GameState(makeBoard());
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.start();
+    expect(() => gs.startRound2()).toThrow('Invalid phase');
+  });
+
+  test('round 2 clue values are doubled', () => {
+    const gs = makeR1CompletedGs();
+    gs.startRound2();
+    gs.selectClue(0, 0);
+    const state = gs.getPublicState();
+    expect(state.currentClue.value).toBe(400);
+  });
+});
+
 describe('GameState — getPublicState / getHostState', () => {
   test('getPublicState omits answers', () => {
     const gs = new GameState(makeBoard());

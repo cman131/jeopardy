@@ -115,6 +115,18 @@ class GameState {
     this._closeClue();
   }
 
+  startRound2() {
+    if (this.phase !== 'between-rounds') throw new Error('Invalid phase');
+    this.currentRound = 2;
+    this.currentClue = null;
+    this.buzzerState = 'locked';
+    this.buzzedBy = null;
+    this.buzzedPlayers = [];
+    const sorted = [...this.players].sort((a, b) => b.score - a.score);
+    this.currentPicker = sorted[0].name;
+    this.phase = 'board';
+  }
+
   endGame() {
     if (this.currentClue) this._closeClue();
     this.phase = 'finished';
