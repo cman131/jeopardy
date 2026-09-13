@@ -14,8 +14,8 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, categories } = req.body;
-    const board = await Board.create({ name, categories });
+    const { name, round1, round2, finalJeopardy } = req.body;
+    const board = await Board.create({ name, round1, round2, finalJeopardy });
     res.status(201).json(board);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -34,8 +34,8 @@ router.get('/:id', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { name, categories } = req.body;
-    const board = await Board.findByIdAndUpdate(req.params.id, { name, categories }, { new: true, runValidators: true });
+    const { name, round1, round2, finalJeopardy } = req.body;
+    const board = await Board.findByIdAndUpdate(req.params.id, { name, round1, round2, finalJeopardy }, { new: true, runValidators: true });
     if (!board) return res.status(404).json({ error: 'Not found' });
     res.json(board);
   } catch (err) {

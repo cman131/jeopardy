@@ -21,16 +21,20 @@ async function clearDb() {
 }
 
 function makeTestBoard(overrides = {}) {
-  return {
-    name: 'Test Board',
+  const makeRound = (prefix) => ({
     categories: Array.from({ length: 6 }, (_, ci) => ({
-      name: `CAT${ci}`,
-      clues: [200, 400, 600, 800, 1000].map((value, qi) => ({
-        question: `Q${ci}-${qi}`,
-        answer: `A${ci}-${qi}`,
-        value,
+      name: `${prefix}-CAT${ci}`,
+      clues: Array.from({ length: 5 }, (_, qi) => ({
+        question: `${prefix}-Q${ci}-${qi}`,
+        answer: `${prefix}-A${ci}-${qi}`,
       })),
     })),
+  });
+  return {
+    name: 'Test Board',
+    round1: makeRound('R1'),
+    round2: makeRound('R2'),
+    finalJeopardy: { category: 'FJ-CAT', clue: 'FJ-CLUE', answer: 'FJ-ANSWER' },
     ...overrides,
   };
 }
