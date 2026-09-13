@@ -2,8 +2,8 @@ import { useState } from 'react';
 
 const VALUES = [200, 400, 600, 800, 1000];
 
-// Props: board ({name, categories}), onChange(updatedBoard)
-export default function BoardEditorGrid({ board, onChange }) {
+// Props: board ({name, categories}), onChange(updatedBoard), filled (number)
+export default function BoardEditorGrid({ board, onChange, filled }) {
   const [activeCell, setActiveCell] = useState(null); // { ci, qi }
 
   function updateCategory(ci, name) {
@@ -19,8 +19,6 @@ export default function BoardEditorGrid({ board, onChange }) {
     });
     onChange({ ...board, categories: cats });
   }
-
-  const filled = board.categories.reduce((sum, c) => sum + c.clues.filter(cl => cl.question && cl.answer).length, 0);
 
   return (
     <div>
@@ -75,7 +73,7 @@ export default function BoardEditorGrid({ board, onChange }) {
       <div style={{ marginTop: 14, background: '#0f172a', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{ fontSize: 12, color: '#94a3b8' }}>Completion:</span>
         <div style={{ flex: 1, background: '#1e293b', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-          <div style={{ background: filled === 30 ? '#16a34a' : '#3b82f6', height: '100%', width: `${(filled / 30) * 100}%`, transition: 'width 0.2s' }} />
+          <div style={{ background: filled === 30 ? '#16a34a' : '#3b82f6', height: '100%', width: `${(filled / 30) * 100}%`, transition: 'width 0.2s, background 0.2s' }} />
         </div>
         <span style={{ fontSize: 12, color: filled === 30 ? '#4ade80' : '#94a3b8', fontWeight: 'bold' }}>{filled}/30</span>
         {filled < 30 && <span style={{ fontSize: 11, color: '#f87171' }}>⚠ Incomplete</span>}
