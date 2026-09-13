@@ -47,7 +47,7 @@ export default function DisplayPage() {
       )}
       {(game.phase === 'board') && (
         <>
-          <GameBoard categoryNames={game.board?.categoryNames || []} revealedClues={game.revealedClues} activeClue={game.currentClue} />
+          <GameBoard categoryNames={game.board?.categoryNames || []} revealedClues={game.revealedClues} activeClue={game.currentClue} round={game.currentRound || 1} />
           <ScoreBar players={game.players} currentPicker={game.currentPicker} />
         </>
       )}

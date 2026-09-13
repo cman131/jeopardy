@@ -91,7 +91,7 @@ function HostBoard({ game, gameCode, board }) {
       <div style={{ background: '#fbbf24', color: '#0a0a0a', borderRadius: 8, padding: '8px 14px', textAlign: 'center', fontWeight: 'bold', marginBottom: 12 }}>
         🎯 {game.currentPicker} is selecting the next clue
       </div>
-      <GameBoard categoryNames={categoryNames} revealedClues={game.revealedClues || []} onSelect={(ci, qi) => socket.emit('host:selectClue', { categoryIndex: ci, clueIndex: qi })} />
+      <GameBoard categoryNames={categoryNames} revealedClues={game.revealedClues || []} onSelect={(ci, qi) => socket.emit('host:selectClue', { categoryIndex: ci, clueIndex: qi })} round={game.currentRound || 1} />
       <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
         <ScoreBar players={game.players || []} currentPicker={game.currentPicker} />
         <button onClick={() => { if (window.confirm('End game?')) socket.emit('host:endGame'); }}
