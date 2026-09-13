@@ -55,6 +55,7 @@ function registerGameHandlers(io, socket) {
       board: { name: entry.state.board.name, categoryNames: state.categoryNames },
       players: state.players,
       currentPicker: state.currentPicker,
+      currentRound: 1,
     });
     socket.emit('host:state', entry.state.getHostState());
   });
@@ -118,11 +119,22 @@ function registerGameHandlers(io, socket) {
     }
     await Game.updateOne({ gameCode }, { $set: { revealedClues: pub.revealedClues } });
 
-    if (pub.phase === 'finished') {
+    const phase = entry.state.phase;
+    if (phase === 'between-rounds') {
+      io.to(gameCode).emit('game:betweenRounds', { players: entry.state.getPublicState().players });
+    } else if (phase === 'final-wager') {
+      io.to(gameCode).emit('game:finalWager', { category: entry.state.board.finalJeopardy.category });
+    } else if (phase === 'finished') {
       await Game.updateOne({ gameCode }, { $set: { status: 'finished', completedAt: new Date() } });
-      io.to(gameCode).emit('game:finished', { players: entry.state.players });
+      io.to(gameCode).emit('game:finished', { players: entry.state.getPublicState().players });
     } else {
-      io.to(gameCode).emit('game:scored', { players: pub.players, currentPicker: pub.currentPicker, revealedClues: pub.revealedClues });
+      const state = entry.state.getPublicState();
+      io.to(gameCode).emit('game:scored', {
+        players: state.players,
+        currentPicker: state.currentPicker,
+        currentRound: state.currentRound,
+        revealedClues: state.revealedClues.filter(r => r.round === entry.state.currentRound),
+      });
     }
   });
 
@@ -133,7 +145,152 @@ function registerGameHandlers(io, socket) {
     try { entry.state.skipClue(); } catch { return; }
     const pub = entry.state.getPublicState();
     await Game.updateOne({ gameCode }, { $set: { revealedClues: pub.revealedClues } });
-    io.to(gameCode).emit('game:clueSkipped', { revealedClues: pub.revealedClues, currentPicker: pub.currentPicker });
+
+    const phase = entry.state.phase;
+    if (phase === 'between-rounds') {
+      io.to(gameCode).emit('game:betweenRounds', { players: entry.state.getPublicState().players });
+    } else if (phase === 'final-wager') {
+      io.to(gameCode).emit('game:finalWager', { category: entry.state.board.finalJeopardy.category });
+    } else if (phase === 'finished') {
+      io.to(gameCode).emit('game:finished', { players: entry.state.getPublicState().players });
+    } else {
+      const state = entry.state.getPublicState();
+      io.to(gameCode).emit('game:scored', {
+        players: state.players,
+        currentPicker: state.currentPicker,
+        currentRound: state.currentRound,
+        revealedClues: state.revealedClues.filter(r => r.round === entry.state.currentRound),
+      });
+    }
+  });
+
+  socket.on('host:startRound2', () => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    const gameCode = _gameCodeFor(socket);
+    const gs = entry.state;
+    try {
+      gs.startRound2();
+      const state = gs.getPublicState();
+      io.to(gameCode).emit('game:round2Started', {
+        currentRound: 2,
+        categoryNames: state.categoryNames,
+        currentPicker: state.currentPicker,
+        players: state.players,
+      });
+    } catch (e) {
+      socket.emit('error:generic', { message: e.message });
+    }
+  });
+
+  socket.on('player:submitWager', ({ wager }) => {
+    const rooms = Array.from(socket.rooms).filter(r => r !== socket.id);
+    if (!rooms.length) return;
+    const gameCode = rooms[0];
+    const entry = gameStore.get(gameCode);
+    if (!entry) return;
+    const playerName = [...entry.playerSockets.entries()].find(([, sid]) => sid === socket.id)?.[0];
+    if (!playerName) return;
+    const gs = entry.state;
+    try {
+      gs.submitWager(playerName, wager);
+      io.to(gameCode).emit('game:wagerSubmitted', { playerName });
+      if (gs.phase === 'final-clue') {
+        io.to(gameCode).emit('game:finalClue', {
+          category: gs.board.finalJeopardy.category,
+          clue: gs.board.finalJeopardy.clue,
+        });
+      }
+    } catch (e) {
+      socket.emit('error:generic', { message: e.message });
+    }
+  });
+
+  socket.on('host:closeWagers', () => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    const gameCode = _gameCodeFor(socket);
+    const gs = entry.state;
+    try {
+      gs.closeWagers();
+      io.to(gameCode).emit('game:finalClue', {
+        category: gs.board.finalJeopardy.category,
+        clue: gs.board.finalJeopardy.clue,
+      });
+    } catch (e) {
+      socket.emit('error:generic', { message: e.message });
+    }
+  });
+
+  socket.on('player:submitAnswer', ({ answer }) => {
+    const rooms = Array.from(socket.rooms).filter(r => r !== socket.id);
+    if (!rooms.length) return;
+    const gameCode = rooms[0];
+    const entry = gameStore.get(gameCode);
+    if (!entry) return;
+    const playerName = [...entry.playerSockets.entries()].find(([, sid]) => sid === socket.id)?.[0];
+    if (!playerName) return;
+    const gs = entry.state;
+    try {
+      gs.submitAnswer(playerName, answer);
+      io.to(gameCode).emit('game:answerSubmitted', { playerName });
+      if (gs.phase === 'final-judging') {
+        const answers = [...gs.finalAnswers.entries()].map(([name, ans]) => ({ playerName: name, answer: ans }));
+        io.to(entry.hostSocketId).emit('game:finalJudgingReady', { answers });
+        io.to(gameCode).emit('game:finalJudging');
+      }
+    } catch (e) {
+      socket.emit('error:generic', { message: e.message });
+    }
+  });
+
+  socket.on('host:closeAnswers', () => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    const gameCode = _gameCodeFor(socket);
+    const gs = entry.state;
+    try {
+      gs.closeAnswers();
+      const answers = [...gs.finalAnswers.entries()].map(([name, ans]) => ({ playerName: name, answer: ans }));
+      io.to(entry.hostSocketId).emit('game:finalJudgingReady', { answers });
+      io.to(gameCode).emit('game:finalJudging');
+    } catch (e) {
+      socket.emit('error:generic', { message: e.message });
+    }
+  });
+
+  socket.on('host:judgeFinal', ({ playerName: targetName, correct }) => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    const gameCode = _gameCodeFor(socket);
+    const gs = entry.state;
+    try {
+      gs.judgeFinal(targetName, correct);
+      if (gs.phase === 'final-reveal') {
+        io.to(gameCode).emit('game:revealReady', { players: gs.getPublicState().players });
+      }
+    } catch (e) {
+      socket.emit('error:generic', { message: e.message });
+    }
+  });
+
+  socket.on('host:revealNext', () => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    const gameCode = _gameCodeFor(socket);
+    const gs = entry.state;
+    try {
+      const result = gs.revealNext();
+      io.to(gameCode).emit('game:finalReveal', {
+        ...result,
+        players: gs.getPublicState().players,
+      });
+      if (gs.phase === 'finished') {
+        io.to(gameCode).emit('game:finished', { players: gs.getPublicState().players });
+      }
+    } catch (e) {
+      socket.emit('error:generic', { message: e.message });
+    }
   });
 
   socket.on('host:endGame', async () => {
