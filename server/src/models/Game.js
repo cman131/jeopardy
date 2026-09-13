@@ -26,7 +26,7 @@ const finalJeopardyEntrySchema = new mongoose.Schema({
   playerName: { type: String, required: true },
   wager: { type: Number },
   answer: { type: String },
-  correct: { type: Boolean, default: null },
+  correct: { type: Boolean },
 }, { _id: false });
 
 const gameSchema = new mongoose.Schema({
