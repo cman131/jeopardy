@@ -71,6 +71,7 @@ class GameState {
   }
 
   buzz(playerName) {
+    if (!this.players.some(p => p.name === playerName)) return false;
     if (this.phase !== 'clue' || this.buzzerState !== 'open') return false;
     if (this.buzzedPlayers.includes(playerName)) return false;
     this.buzzedPlayers.push(playerName);
@@ -82,6 +83,7 @@ class GameState {
 
   judge(result) {
     if (this.phase !== 'judging') throw new Error('Invalid phase');
+    if (result !== 'correct' && result !== 'incorrect') throw new Error('Invalid result');
     const player = this.players.find(p => p.name === this.buzzedBy);
     const value = clueValue(this.currentRound, this.currentClue.clueIndex);
     const delta = result === 'correct' ? value : -value;
@@ -98,7 +100,6 @@ class GameState {
       this.currentPicker = this.buzzedBy;
       this._closeClue();
     } else {
-      const prevBuzzedBy = this.buzzedBy;
       this.buzzedBy = null;
       this.buzzerState = 'open';
       this.phase = 'clue';
