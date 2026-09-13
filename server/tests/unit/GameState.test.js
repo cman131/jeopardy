@@ -1,15 +1,33 @@
-const GameState = require('../../src/game/GameState');
+const { GameState, clueValue } = require('../../src/game/GameState');
 
-const makeBoard = () => ({
-  name: 'Test Board',
-  categories: Array.from({ length: 6 }, (_, ci) => ({
-    name: `CAT${ci}`,
-    clues: [200, 400, 600, 800, 1000].map((value, qi) => ({
-      question: `Q${ci}-${qi}`,
-      answer: `A${ci}-${qi}`,
-      value,
+function makeBoard(overrides = {}) {
+  const makeRound = (prefix) => ({
+    categories: Array.from({ length: 6 }, (_, ci) => ({
+      name: `${prefix}-CAT${ci}`,
+      clues: Array.from({ length: 5 }, (_, qi) => ({
+        question: `${prefix}-Q${ci}-${qi}`,
+        answer: `${prefix}-A${ci}-${qi}`,
+      })),
     })),
-  })),
+  });
+  return {
+    name: 'Test Board',
+    round1: makeRound('R1'),
+    round2: makeRound('R2'),
+    finalJeopardy: { category: 'FJ-CAT', clue: 'FJ-CLUE', answer: 'FJ-ANSWER' },
+    ...overrides,
+  };
+}
+
+describe('clueValue', () => {
+  test('round 1 values are $200-$1000', () => {
+    expect(clueValue(1, 0)).toBe(200);
+    expect(clueValue(1, 4)).toBe(1000);
+  });
+  test('round 2 values are $400-$2000', () => {
+    expect(clueValue(2, 0)).toBe(400);
+    expect(clueValue(2, 4)).toBe(2000);
+  });
 });
 
 describe('GameState — lobby', () => {
@@ -118,7 +136,7 @@ describe('GameState — judging', () => {
     gs.addPlayer('Alice');
     gs.addPlayer('Bob');
     gs.startGame();
-    gs.selectClue(0, 2); // $600 clue
+    gs.selectClue(0, 2); // clueValue(1, 2) = $600
     gs.unlock();
     gs.buzz('Alice');
     return gs;
@@ -134,7 +152,7 @@ describe('GameState — judging', () => {
       categoryIndex: 0, clueIndex: 2, clueValue: 600, result: 'correct', delta: 600,
     });
     expect(gs.currentPicker).toBe('Alice');
-    expect(gs.revealedClues).toContainEqual({ categoryIndex: 0, clueIndex: 2 });
+    expect(gs.revealedClues).toContainEqual({ round: 1, categoryIndex: 0, clueIndex: 2 });
   });
 
   test('incorrect: subtracts score, re-opens buzzers, excludes buzzer', () => {
@@ -160,7 +178,7 @@ describe('GameState — judging', () => {
     gs.buzz('Bob');
     gs.judge('incorrect');
     expect(gs.phase).toBe('board');
-    expect(gs.revealedClues).toContainEqual({ categoryIndex: 0, clueIndex: 2 });
+    expect(gs.revealedClues).toContainEqual({ round: 1, categoryIndex: 0, clueIndex: 2 });
     expect(gs.currentPicker).toBe('Alice'); // unchanged on all-incorrect
   });
 });
@@ -174,13 +192,13 @@ describe('GameState — skip', () => {
     gs.selectClue(1, 1);
     gs.skipClue();
     expect(gs.phase).toBe('board');
-    expect(gs.revealedClues).toContainEqual({ categoryIndex: 1, clueIndex: 1 });
+    expect(gs.revealedClues).toContainEqual({ round: 1, categoryIndex: 1, clueIndex: 1 });
     expect(gs.currentPicker).toBe('Alice');
   });
 });
 
-describe('GameState — finished', () => {
-  test('auto-finishes when all 30 clues revealed', () => {
+describe('GameState — round transition', () => {
+  test('auto-transitions to between-rounds when all 30 round-1 clues revealed', () => {
     const gs = new GameState(makeBoard());
     gs.addPlayer('Alice');
     gs.addPlayer('Bob');
@@ -200,7 +218,21 @@ describe('GameState — finished', () => {
     gs.unlock();
     gs.buzz('Alice');
     gs.judge('correct');
-    expect(gs.phase).toBe('finished');
+    expect(gs.phase).toBe('between-rounds');
+  });
+});
+
+describe('selectClue', () => {
+  test('revealedClues entry includes round: 1 after round 1 clue is scored', () => {
+    const gs = new GameState(makeBoard());
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.start();
+    gs.selectClue(0, 0);
+    gs.openBuzzers();
+    gs.buzz('Alice');
+    gs.judge('correct');
+    expect(gs.revealedClues[0]).toMatchObject({ round: 1, categoryIndex: 0, clueIndex: 0 });
   });
 });
 
@@ -213,7 +245,7 @@ describe('GameState — getPublicState / getHostState', () => {
     gs.selectClue(0, 0);
     const pub = gs.getPublicState();
     expect(pub.currentClue.answer).toBeUndefined();
-    expect(pub.currentClue.question).toBe('Q0-0');
+    expect(pub.currentClue.question).toBe('R1-Q0-0');
   });
 
   test('getHostState includes answer', () => {
@@ -223,7 +255,7 @@ describe('GameState — getPublicState / getHostState', () => {
     gs.startGame();
     gs.selectClue(0, 0);
     const host = gs.getHostState();
-    expect(host.currentClue.answer).toBe('A0-0');
+    expect(host.currentClue.answer).toBe('R1-A0-0');
   });
 
   test('mutating returned revealedClues does not affect internal state', () => {
@@ -236,7 +268,7 @@ describe('GameState — getPublicState / getHostState', () => {
     gs.buzz('Alice');
     gs.judge('correct');
     const pub = gs.getPublicState();
-    pub.revealedClues.push({ categoryIndex: 99, clueIndex: 99 });
+    pub.revealedClues.push({ round: 1, categoryIndex: 99, clueIndex: 99 });
     expect(gs.revealedClues).toHaveLength(1); // internal state unchanged
   });
 });

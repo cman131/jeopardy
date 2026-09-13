@@ -1,4 +1,4 @@
-const GameState = require('./GameState');
+const { GameState } = require('./GameState');
 
 const store = new Map(); // gameCode → { state, hostSocketId, playerSockets }
 
