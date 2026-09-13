@@ -289,6 +289,143 @@ describe('between-rounds', () => {
   });
 });
 
+describe('Final Jeopardy', () => {
+  function makeFjGs() {
+    const board = makeBoard();
+    const gs = new GameState(board);
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.start();
+    // Skip all round 1 clues
+    for (let ci = 0; ci < 6; ci++)
+      for (let qi = 0; qi < 5; qi++) { gs.selectClue(ci, qi); gs.skipClue(); }
+    gs.startRound2();
+    // Skip all round 2 clues
+    for (let ci = 0; ci < 6; ci++)
+      for (let qi = 0; qi < 5; qi++) { gs.selectClue(ci, qi); gs.skipClue(); }
+    return gs;
+  }
+
+  test('phase transitions to final-wager after all round 2 clues revealed', () => {
+    const gs = makeFjGs();
+    expect(gs.phase).toBe('final-wager');
+  });
+
+  test('submitWager accepts valid wager and records it', () => {
+    const gs = makeFjGs();
+    gs.submitWager('Alice', 500);
+    expect(gs.finalWagers.get('Alice')).toBe(500);
+    expect(gs.phase).toBe('final-wager'); // still waiting for Bob
+  });
+
+  test('submitWager rejects wager above max(score, 1000)', () => {
+    const gs = makeFjGs();
+    gs.players[0].score = 0;
+    expect(() => gs.submitWager('Alice', 1001)).toThrow('Invalid wager');
+  });
+
+  test('submitWager rejects negative wager', () => {
+    const gs = makeFjGs();
+    expect(() => gs.submitWager('Alice', -1)).toThrow('Invalid wager');
+  });
+
+  test('max wager is score when score > 1000', () => {
+    const gs = makeFjGs();
+    gs.players[0].score = 5000;
+    gs.submitWager('Alice', 5000);
+    expect(gs.finalWagers.get('Alice')).toBe(5000);
+  });
+
+  test('phase advances to final-clue when all players submit wager', () => {
+    const gs = makeFjGs();
+    gs.submitWager('Alice', 500);
+    gs.submitWager('Bob', 300);
+    expect(gs.phase).toBe('final-clue');
+  });
+
+  test('closeWagers defaults missing wagers to 0 and advances to final-clue', () => {
+    const gs = makeFjGs();
+    gs.submitWager('Alice', 500);
+    gs.closeWagers();
+    expect(gs.finalWagers.get('Bob')).toBe(0);
+    expect(gs.phase).toBe('final-clue');
+  });
+
+  test('submitAnswer records answer and advances phase when all submit', () => {
+    const gs = makeFjGs();
+    gs.submitWager('Alice', 500);
+    gs.submitWager('Bob', 300);
+    gs.submitAnswer('Alice', 'What is X?');
+    expect(gs.phase).toBe('final-clue'); // still waiting for Bob
+    gs.submitAnswer('Bob', 'What is Y?');
+    expect(gs.phase).toBe('final-judging');
+  });
+
+  test('closeAnswers defaults missing answers to blank and advances to final-judging', () => {
+    const gs = makeFjGs();
+    gs.submitWager('Alice', 500);
+    gs.submitWager('Bob', 300);
+    gs.submitAnswer('Alice', 'What is X?');
+    gs.closeAnswers();
+    expect(gs.finalAnswers.get('Bob')).toBe('');
+    expect(gs.phase).toBe('final-judging');
+  });
+
+  test('judgeFinal records judgment and transitions to final-reveal when all judged', () => {
+    const gs = makeFjGs();
+    gs.submitWager('Alice', 500);
+    gs.submitWager('Bob', 300);
+    gs.submitAnswer('Alice', 'What is X?');
+    gs.submitAnswer('Bob', 'What is Y?');
+    gs.judgeFinal('Alice', true);
+    expect(gs.phase).toBe('final-judging'); // still waiting for Bob
+    gs.judgeFinal('Bob', false);
+    expect(gs.phase).toBe('final-reveal');
+  });
+
+  test('finalRevealOrder is ascending by score', () => {
+    const gs = makeFjGs();
+    gs.players[0].score = 2000; // Alice
+    gs.players[1].score = 1000; // Bob
+    gs.submitWager('Alice', 500);
+    gs.submitWager('Bob', 300);
+    gs.submitAnswer('Alice', 'A');
+    gs.submitAnswer('Bob', 'B');
+    gs.judgeFinal('Alice', true);
+    gs.judgeFinal('Bob', false);
+    expect(gs.finalRevealOrder).toEqual(['Bob', 'Alice']);
+  });
+
+  test('revealNext returns reveal data and updates score', () => {
+    const gs = makeFjGs();
+    gs.players[0].score = 2000; // Alice — higher score, revealed second
+    gs.players[1].score = 1000; // Bob — lower score, revealed first (ascending)
+    gs.submitWager('Alice', 200);
+    gs.submitWager('Bob', 500);
+    gs.submitAnswer('Alice', 'A');
+    gs.submitAnswer('Bob', 'B');
+    gs.judgeFinal('Alice', true);
+    gs.judgeFinal('Bob', false);
+    const reveal = gs.revealNext(); // Bob revealed first (lower score)
+    expect(reveal).toEqual({ playerName: 'Bob', wager: 500, answer: 'B', correct: false });
+    expect(gs.players.find(p => p.name === 'Bob').score).toBe(500); // 1000 - 500
+  });
+
+  test('phase transitions to finished after last reveal', () => {
+    const gs = makeFjGs();
+    gs.submitWager('Alice', 200);
+    gs.submitWager('Bob', 300);
+    gs.submitAnswer('Alice', 'A');
+    gs.submitAnswer('Bob', 'B');
+    gs.judgeFinal('Alice', true);
+    gs.judgeFinal('Bob', false);
+    gs.revealNext();
+    expect(gs.phase).toBe('final-reveal'); // still one more
+    gs.revealNext();
+    expect(gs.phase).toBe('finished');
+  });
+});
+
 describe('GameState — getPublicState / getHostState', () => {
   test('getPublicState omits answers', () => {
     const gs = new GameState(makeBoard());

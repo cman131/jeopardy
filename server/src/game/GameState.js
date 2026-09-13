@@ -127,6 +127,73 @@ class GameState {
     this.phase = 'board';
   }
 
+  submitWager(playerName, wager) {
+    if (this.phase !== 'final-wager') throw new Error('Invalid phase');
+    const player = this.players.find(p => p.name === playerName);
+    if (!player) throw new Error('Player not found');
+    const maxWager = Math.max(player.score, 1000);
+    if (typeof wager !== 'number' || wager < 0 || wager > maxWager) throw new Error('Invalid wager');
+    this.finalWagers.set(playerName, wager);
+    if (this.finalWagers.size >= this.players.length) this.phase = 'final-clue';
+  }
+
+  closeWagers() {
+    if (this.phase !== 'final-wager') throw new Error('Invalid phase');
+    for (const player of this.players) {
+      if (!this.finalWagers.has(player.name)) this.finalWagers.set(player.name, 0);
+    }
+    this.phase = 'final-clue';
+  }
+
+  submitAnswer(playerName, answer) {
+    if (this.phase !== 'final-clue') throw new Error('Invalid phase');
+    if (!this.players.find(p => p.name === playerName)) throw new Error('Player not found');
+    this.finalAnswers.set(playerName, answer);
+    if (this.finalAnswers.size >= this.players.length) this.phase = 'final-judging';
+  }
+
+  closeAnswers() {
+    if (this.phase !== 'final-clue') throw new Error('Invalid phase');
+    for (const player of this.players) {
+      if (!this.finalAnswers.has(player.name)) this.finalAnswers.set(player.name, '');
+    }
+    this.phase = 'final-judging';
+  }
+
+  judgeFinal(playerName, correct) {
+    if (this.phase !== 'final-judging') throw new Error('Invalid phase');
+    if (!this.players.find(p => p.name === playerName)) throw new Error('Player not found');
+    this.finalJudgments.set(playerName, correct);
+    if (this.finalJudgments.size >= this.players.length) {
+      this.finalRevealOrder = [...this.players]
+        .sort((a, b) => a.score - b.score)
+        .map(p => p.name);
+      this.finalRevealIndex = 0;
+      this.phase = 'final-reveal';
+    }
+  }
+
+  revealNext() {
+    if (this.phase !== 'final-reveal') throw new Error('Invalid phase');
+    const playerName = this.finalRevealOrder[this.finalRevealIndex];
+    const player = this.players.find(p => p.name === playerName);
+    const wager = this.finalWagers.get(playerName);
+    const answer = this.finalAnswers.get(playerName);
+    const correct = this.finalJudgments.get(playerName);
+    const delta = correct ? wager : -wager;
+    player.score += delta;
+    player.scoreHistory.push({
+      isFinal: true,
+      clueValue: wager,
+      result: correct ? 'correct' : 'incorrect',
+      delta,
+      timestamp: new Date(),
+    });
+    this.finalRevealIndex++;
+    if (this.finalRevealIndex >= this.players.length) this.phase = 'finished';
+    return { playerName, wager, answer, correct };
+  }
+
   endGame() {
     if (this.currentClue) this._closeClue();
     this.phase = 'finished';
