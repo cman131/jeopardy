@@ -2,25 +2,48 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BoardEditorGrid from '../components/BoardEditorGrid';
 
-const VALUES = [200, 400, 600, 800, 1000];
+const R1_VALUES = [200, 400, 600, 800, 1000];
+const R2_VALUES = [400, 800, 1200, 1600, 2000];
+
+function emptyRound() {
+  return {
+    categories: Array.from({ length: 6 }, () => ({
+      name: 'CATEGORY',
+      clues: Array.from({ length: 5 }, () => ({ question: '', answer: '' })),
+    })),
+  };
+}
 
 function emptyBoard() {
   return {
     name: 'New Board',
-    categories: Array.from({ length: 6 }, () => ({
-      name: 'CATEGORY',
-      clues: VALUES.map(value => ({ question: '', answer: '', value })),
-    })),
+    round1: emptyRound(),
+    round2: emptyRound(),
+    finalJeopardy: { category: '', clue: '', answer: '' },
   };
 }
 
 function validateBoardJson(data) {
   if (!data || typeof data !== 'object') return false;
-  if (!Array.isArray(data.categories) || data.categories.length !== 6) return false;
-  return data.categories.every(c =>
-    Array.isArray(c.clues) && c.clues.length === 5 &&
-    c.clues.every(cl => 'question' in cl && 'answer' in cl && 'value' in cl)
-  );
+  const validRound = (r) =>
+    r && Array.isArray(r.categories) && r.categories.length === 6 &&
+    r.categories.every(c => Array.isArray(c.clues) && c.clues.length === 5 &&
+      c.clues.every(cl => 'question' in cl && 'answer' in cl));
+  const validFj = (fj) => fj && 'category' in fj && 'clue' in fj && 'answer' in fj;
+  // Reject old single-round format
+  if ('categories' in data) return false;
+  return validRound(data.round1) && validRound(data.round2) && validFj(data.finalJeopardy);
+}
+
+function countFilled(board) {
+  const countRound = (round) =>
+    round.categories.reduce((sum, c) => sum + c.clues.filter(cl => cl.question && cl.answer).length, 0);
+  const fj = board.finalJeopardy;
+  return {
+    r1: countRound(board.round1),
+    r2: countRound(board.round2),
+    fj: (fj.category && fj.clue && fj.answer) ? 1 : 0,
+  };
 }
 
 export default function EditorPage() {
@@ -29,6 +52,7 @@ export default function EditorPage() {
   const [boards, setBoards] = useState([]);
   const [board, setBoard] = useState(emptyBoard());
   const [activeBoardId, setActiveBoardId] = useState(boardId || null);
+  const [activeTab, setActiveTab] = useState('round1');
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState(null);
@@ -94,12 +118,14 @@ export default function EditorPage() {
   function selectBoard(id) {
     if (!confirmDiscard()) return;
     setActiveBoardId(id);
+    setActiveTab('round1');
   }
 
   function newBoard() {
     if (!confirmDiscard()) return;
     setBoard(emptyBoard());
     setActiveBoardId(null);
+    setActiveTab('round1');
     setDirty(false);
     navigate('/editor');
   }
@@ -115,11 +141,12 @@ export default function EditorPage() {
         try {
           const data = JSON.parse(ev.target.result);
           if (!validateBoardJson(data)) {
-            alert('Invalid board JSON: must have 6 categories, each with 5 clues (question, answer, value)');
+            alert('Invalid board JSON. Must use multi-round format with round1, round2, and finalJeopardy sections. Old single-round boards are not supported.');
             return;
           }
           setBoard(data);
           setActiveBoardId(null);
+          setActiveTab('round1');
           setDirty(true);
         } catch { alert('Invalid JSON file'); }
       };
@@ -138,12 +165,19 @@ export default function EditorPage() {
     URL.revokeObjectURL(url);
   }
 
-  function handleBoardChange(updated) {
-    setBoard(updated);
-    setDirty(true);
-  }
+  const { r1, r2, fj } = countFilled(board);
+  const allFilled = r1 === 30 && r2 === 30 && fj === 1;
 
-  const filled = board.categories.reduce((sum, c) => sum + c.clues.filter(cl => cl.question && cl.answer).length, 0);
+  const tabStyle = (tab) => ({
+    padding: '8px 16px',
+    background: activeTab === tab ? '#1d4ed8' : '#1e293b',
+    color: activeTab === tab ? '#fff' : '#64748b',
+    border: 'none',
+    borderRadius: '6px 6px 0 0',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 'bold',
+  });
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -175,7 +209,8 @@ export default function EditorPage() {
             {error}
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <input
             value={board.name}
             onChange={e => { setBoard(b => ({ ...b, name: e.target.value })); setDirty(true); }}
@@ -183,18 +218,91 @@ export default function EditorPage() {
             maxLength={80}
             style={{ flex: 1, background: '#1e293b', border: '1px solid #334155', borderRadius: 6, padding: '8px 12px', fontSize: 15, color: '#fff' }}
           />
+          <span style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>
+            R1: <span style={{ color: r1 === 30 ? '#4ade80' : '#94a3b8' }}>{r1}/30</span>
+            {' · '}
+            R2: <span style={{ color: r2 === 30 ? '#4ade80' : '#94a3b8' }}>{r2}/30</span>
+            {' · '}
+            FJ: <span style={{ color: fj === 1 ? '#4ade80' : '#94a3b8' }}>{fj}/1</span>
+          </span>
           <button onClick={save} disabled={saving}
             style={{ padding: '8px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>
             {saving ? 'Saving...' : 'Save'}
           </button>
-          <button onClick={play} disabled={filled < 30}
-            title={filled < 30 ? 'Board must be complete (30/30) to play' : ''}
-            style={{ padding: '8px 18px', background: filled >= 30 ? '#1d4ed8' : '#1e293b', color: filled >= 30 ? '#fff' : '#475569', border: 'none', borderRadius: 6, cursor: filled >= 30 ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}>
+          <button onClick={play} disabled={!allFilled}
+            title={!allFilled ? 'Board must be complete (R1: 30/30, R2: 30/30, FJ: 1/1) to play' : ''}
+            style={{ padding: '8px 18px', background: allFilled ? '#1d4ed8' : '#1e293b', color: allFilled ? '#fff' : '#475569', border: 'none', borderRadius: 6, cursor: allFilled ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}>
             ▶ Play
           </button>
         </div>
-        <BoardEditorGrid key={activeBoardId || 'new'} board={board} onChange={handleBoardChange} filled={filled} />
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 0, borderBottom: '1px solid #1e293b' }}>
+          <button style={tabStyle('round1')} onClick={() => setActiveTab('round1')}>ROUND 1</button>
+          <button style={tabStyle('round2')} onClick={() => setActiveTab('round2')}>ROUND 2</button>
+          <button style={tabStyle('finalJeopardy')} onClick={() => setActiveTab('finalJeopardy')}>FINAL JEOPARDY</button>
+        </div>
+
+        <div style={{ background: '#0f172a', borderRadius: '0 0 8px 8px', padding: 12 }}>
+          {activeTab === 'round1' && (
+            <BoardEditorGrid
+              key={activeBoardId ? `${activeBoardId}-r1` : 'new-r1'}
+              categories={board.round1.categories}
+              values={R1_VALUES}
+              onChange={cats => { setBoard(b => ({ ...b, round1: { ...b.round1, categories: cats } })); setDirty(true); }}
+            />
+          )}
+          {activeTab === 'round2' && (
+            <BoardEditorGrid
+              key={activeBoardId ? `${activeBoardId}-r2` : 'new-r2'}
+              categories={board.round2.categories}
+              values={R2_VALUES}
+              onChange={cats => { setBoard(b => ({ ...b, round2: { ...b.round2, categories: cats } })); setDirty(true); }}
+            />
+          )}
+          {activeTab === 'finalJeopardy' && (
+            <FinalJeopardyTab fj={board.finalJeopardy} onChange={fj => { setBoard(b => ({ ...b, finalJeopardy: fj })); setDirty(true); }} />
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function FinalJeopardyTab({ fj, onChange }) {
+  return (
+    <div style={{ maxWidth: 480 }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>CATEGORY</div>
+        <input
+          value={fj.category}
+          onChange={e => onChange({ ...fj, category: e.target.value })}
+          placeholder="e.g. POTENT POTABLES"
+          style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 14, padding: '8px 10px', boxSizing: 'border-box' }}
+        />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>CLUE</div>
+        <textarea
+          value={fj.clue}
+          onChange={e => onChange({ ...fj, clue: e.target.value })}
+          rows={4}
+          placeholder="This is the Final Jeopardy clue..."
+          style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 13, padding: '8px 10px', resize: 'vertical', boxSizing: 'border-box' }}
+        />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: '#86efac', marginBottom: 6 }}>ANSWER</div>
+        <input
+          value={fj.answer}
+          onChange={e => onChange({ ...fj, answer: e.target.value })}
+          placeholder="What is...?"
+          style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#4ade80', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
+        />
+      </div>
+      {fj.category && fj.clue && fj.answer && (
+        <div style={{ fontSize: 11, color: '#4ade80' }}>✓ Final Jeopardy complete</div>
+      )}
     </div>
   );
 }
