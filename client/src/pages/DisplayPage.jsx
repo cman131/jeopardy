@@ -32,7 +32,7 @@ export default function DisplayPage() {
     socket.on('game:betweenRounds', ({ players }) =>
       setGame(g => ({ ...g, phase: 'between-rounds', players })));
     socket.on('game:round2Started', ({ currentRound, categoryNames, currentPicker, players }) =>
-      setGame(g => ({ ...g, phase: 'board', currentRound, categoryNames, currentPicker, players, revealedClues: [] })));
+      setGame(g => ({ ...g, phase: 'board', currentRound, board: { ...g.board, categoryNames }, currentPicker, players, revealedClues: [] })));
     socket.on('game:finalWager', ({ category }) =>
       setGame(g => ({ ...g, phase: 'final-wager', fjCategory: category, wagersSubmitted: [] })));
     socket.on('game:wagerSubmitted', ({ playerName }) =>

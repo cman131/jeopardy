@@ -122,7 +122,8 @@ function HostLobby({ game, gameCode, boardName }) {
 }
 
 function HostBoard({ game, gameCode, board }) {
-  const categoryNames = board.categories.map(c => c.name);
+  const currentRound = game.currentRound || 1;
+  const categoryNames = board[`round${currentRound}`].categories.map(c => c.name);
   return (
     <div>
       <div style={{ background: '#fbbf24', color: '#0a0a0a', borderRadius: 8, padding: '8px 14px', textAlign: 'center', fontWeight: 'bold', marginBottom: 12 }}>
@@ -142,7 +143,10 @@ function HostBoard({ game, gameCode, board }) {
 
 function HostClue({ game, board }) {
   const { currentClue, phase, buzzedBy, players } = game;
-  const clueData = currentClue && board.categories[currentClue.categoryIndex]?.clues[currentClue.clueIndex];
+  const currentRound = game.currentRound || 1;
+  const currentCategories = board[`round${currentRound}`].categories;
+  const clueData = currentClue && currentCategories[currentClue.categoryIndex]?.clues[currentClue.clueIndex];
+  const clueValue = currentClue ? (currentClue.clueIndex + 1) * (currentRound === 1 ? 200 : 400) : 0;
 
   return (
     <div>
@@ -154,7 +158,7 @@ function HostClue({ game, board }) {
       {clueData && (
         <>
           <div style={{ fontSize: 11, color: '#a5b4fc', letterSpacing: 2, marginBottom: 6 }}>
-            {board.categories[currentClue.categoryIndex].name} · ${clueData.value}
+            {currentCategories[currentClue.categoryIndex].name} · ${clueValue}
           </div>
           <div style={{ background: '#0f172a', borderRadius: 8, padding: 14, marginBottom: 12 }}>
             <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>CLUE</div>
@@ -182,11 +186,11 @@ function HostClue({ game, board }) {
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => socket.emit('host:judge', { result: 'correct' })}
             style={{ flex: 1, padding: 16, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
-            ✓ Correct<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>+${clueData.value}</span>
+            ✓ Correct<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>+${clueValue}</span>
           </button>
           <button onClick={() => socket.emit('host:judge', { result: 'incorrect' })}
             style={{ flex: 1, padding: 16, background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
-            ✗ Incorrect<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>-${clueData.value}</span>
+            ✗ Incorrect<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>-${clueValue}</span>
           </button>
         </div>
       )}
