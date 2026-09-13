@@ -152,6 +152,7 @@ function registerGameHandlers(io, socket) {
     } else if (phase === 'final-wager') {
       io.to(gameCode).emit('game:finalWager', { category: entry.state.board.finalJeopardy.category });
     } else if (phase === 'finished') {
+      await Game.updateOne({ gameCode }, { $set: { status: 'finished', completedAt: new Date() } });
       io.to(gameCode).emit('game:finished', { players: entry.state.getPublicState().players });
     } else {
       const state = entry.state.getPublicState();
