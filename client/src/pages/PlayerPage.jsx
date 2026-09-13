@@ -10,6 +10,8 @@ export default function PlayerPage() {
   const myName = state?.name;
   const [game, setGame] = useState(null);
   const [error, setError] = useState(null);
+  const [wagerInput, setWagerInput] = useState('');
+  const [answerInput, setAnswerInput] = useState('');
 
   useEffect(() => {
     if (!myName) { navigate('/'); return; }
@@ -21,16 +23,34 @@ export default function PlayerPage() {
     socket.on('error:gameNotFound', () => setError('Game not found'));
     socket.on('error:nameTaken', () => setError('Name already taken'));
     socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
-    socket.on('game:started', ({ players, currentPicker }) =>
-      setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues: [], currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
+    socket.on('game:started', ({ players, currentPicker, currentRound }) =>
+      setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
     socket.on('game:clueRevealed', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked' })));
     socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
     socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName, buzzerState: 'claimed' })));
-    socket.on('game:scored', ({ players, currentPicker, revealedClues }) =>
-      setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
+    socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
+      setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
     socket.on('game:clueSkipped', ({ revealedClues, currentPicker }) =>
       setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null, buzzerState: 'locked' })));
     socket.on('game:finished', ({ players }) => setGame(g => ({ ...g, phase: 'finished', players })));
+    socket.on('game:betweenRounds', ({ players }) =>
+      setGame(g => ({ ...g, phase: 'between-rounds', players })));
+    socket.on('game:round2Started', ({ currentRound, currentPicker, players }) =>
+      setGame(g => ({ ...g, phase: 'board', currentRound, currentPicker, players, revealedClues: [], currentClue: null })));
+    socket.on('game:finalWager', ({ category }) =>
+      setGame(g => ({ ...g, phase: 'final-wager', fjCategory: category, myWagerSubmitted: false })));
+    socket.on('game:finalClue', ({ category, clue }) =>
+      setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, myAnswerSubmitted: false })));
+    socket.on('game:finalJudging', () =>
+      setGame(g => ({ ...g, phase: 'final-judging' })));
+    socket.on('game:revealReady', ({ players }) =>
+      setGame(g => ({ ...g, phase: 'final-reveal', players, revealedPlayers: [] })));
+    socket.on('game:finalReveal', ({ playerName, wager, answer, correct, players }) =>
+      setGame(g => ({
+        ...g,
+        players,
+        revealedPlayers: [...(g.revealedPlayers || []), { playerName, wager, answer, correct }],
+      })));
 
     return () => { socket.removeAllListeners(); socket.disconnect(); };
   }, [gameCode, myName]);
@@ -84,6 +104,108 @@ export default function PlayerPage() {
         </div>
       )}
 
+      {game.phase === 'between-rounds' && (
+        <div>
+          <div style={{ color: '#fbbf24', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>DOUBLE JEOPARDY</div>
+          <div style={{ color: '#64748b', marginBottom: 12 }}>Get ready for Round 2!</div>
+          <div style={{ fontSize: 12, color: '#475569', marginBottom: 8 }}>SCORES</div>
+          {[...(game.players || [])].sort((a, b) => b.score - a.score).map(p => (
+            <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', color: p.name === myName ? '#fbbf24' : '#64748b' }}>
+              <span>{p.name}</span>
+              <span style={{ color: p.score < 0 ? '#f87171' : '#4ade80' }}>{p.score < 0 ? `-$${Math.abs(p.score)}` : `$${p.score}`}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {game.phase === 'final-wager' && (
+        <div>
+          <div style={{ color: '#fbbf24', fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>FINAL JEOPARDY</div>
+          <div style={{ color: '#e2e8f0', fontSize: 14, marginBottom: 16 }}>{game.fjCategory}</div>
+          {game.myWagerSubmitted ? (
+            <div style={{ color: '#4ade80', fontSize: 14 }}>Wager locked in! ${wagerInput}</div>
+          ) : (
+            <div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>
+                Enter your wager (max: ${Math.max(myScore, 1000)})
+              </div>
+              <input
+                type="number"
+                value={wagerInput}
+                onChange={e => setWagerInput(e.target.value)}
+                min={0}
+                max={Math.max(myScore, 1000)}
+                style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 18, padding: '10px 12px', boxSizing: 'border-box', marginBottom: 10 }}
+              />
+              <button
+                onClick={() => {
+                  const w = parseInt(wagerInput, 10);
+                  if (isNaN(w) || w < 0 || w > Math.max(myScore, 1000)) return;
+                  socket.emit('player:submitWager', { wager: w });
+                  setGame(g => ({ ...g, myWagerSubmitted: true }));
+                }}
+                style={{ width: '100%', padding: 12, background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>
+                Submit Wager
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {game.phase === 'final-clue' && (
+        <div>
+          <div style={{ color: '#a5b4fc', fontSize: 12, marginBottom: 8 }}>{game.fjCategory}</div>
+          <div style={{ background: '#0f172a', borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 14, lineHeight: 1.6, color: '#e2e8f0' }}>
+            {game.fjClue}
+          </div>
+          {game.myAnswerSubmitted ? (
+            <div style={{ color: '#4ade80', fontSize: 14 }}>Answer locked in!</div>
+          ) : (
+            <div>
+              <textarea
+                value={answerInput}
+                onChange={e => setAnswerInput(e.target.value)}
+                placeholder="What is...?"
+                rows={3}
+                style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 14, padding: '10px 12px', resize: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+              />
+              <button
+                onClick={() => {
+                  socket.emit('player:submitAnswer', { answer: answerInput });
+                  setGame(g => ({ ...g, myAnswerSubmitted: true }));
+                }}
+                style={{ width: '100%', padding: 12, background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>
+                Submit Answer
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {game.phase === 'final-judging' && (
+        <div style={{ color: '#64748b', fontSize: 14 }}>Judging in progress...</div>
+      )}
+
+      {game.phase === 'final-reveal' && (
+        <div>
+          <div style={{ color: '#fbbf24', fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>FINAL JEOPARDY REVEAL</div>
+          {(game.revealedPlayers || []).map(({ playerName, wager, answer, correct }) => (
+            <div key={playerName} style={{
+              background: playerName === myName ? '#1d4ed8' : '#1e293b',
+              borderRadius: 8, padding: '10px 14px', marginBottom: 8,
+              border: playerName === myName ? '2px solid #60a5fa' : '1px solid #334155'
+            }}>
+              <div style={{ fontWeight: 'bold', color: '#e2e8f0' }}>{playerName}</div>
+              <div style={{ color: '#94a3b8', fontSize: 12 }}>Wager: ${wager}</div>
+              <div style={{ color: '#94a3b8', fontSize: 12 }}>{answer || '(blank)'}</div>
+              <div style={{ color: correct ? '#4ade80' : '#f87171', fontWeight: 'bold' }}>
+                {correct ? `+$${wager}` : `-$${wager}`}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {game.phase === 'finished' && (
         <div>
           <div style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 16 }}>Game Over!</div>
@@ -99,7 +221,7 @@ export default function PlayerPage() {
       )}
 
       {/* Mini scoreboard always visible during active play */}
-      {game.phase !== 'lobby' && game.phase !== 'finished' && (
+      {game.phase !== 'lobby' && game.phase !== 'finished' && game.phase !== 'between-rounds' && game.phase !== 'final-reveal' && (
         <div style={{ marginTop: 24, fontSize: 12, borderTop: '1px solid #1e293b', paddingTop: 12 }}>
           <div style={{ color: '#475569', marginBottom: 6 }}>SCORES</div>
           {[...(game.players || [])].sort((a, b) => b.score - a.score).map(p => (
