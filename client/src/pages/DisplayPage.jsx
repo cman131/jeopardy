@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import socket from '../socket';
 import GameBoard from '../components/GameBoard';
 import ScoreBar from '../components/ScoreBar';
+import ClueMedia from '../components/ClueMedia';
 import QRCode from 'react-qr-code';
 
 export default function DisplayPage() {
@@ -18,13 +19,16 @@ export default function DisplayPage() {
     socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
     socket.on('game:started', ({ board, players, currentPicker, currentRound }) =>
       setGame({ phase: 'board', board, players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null }));
-    socket.on('game:clueRevealed', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked' })));
+    socket.on('game:clueRevealed', clue =>
+      setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked', answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null })));
     socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
     socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName, buzzerState: 'claimed' })));
     socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
-      setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null })));
+      setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null })));
     socket.on('game:clueSkipped', ({ revealedClues, currentPicker }) =>
-      setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null })));
+      setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null, answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null })));
+    socket.on('game:answerRevealed', ({ answer, answerImage }) =>
+      setGame(g => ({ ...g, answerRevealed: true, revealedAnswer: answer, revealedAnswerImage: answerImage })));
     socket.on('game:finished', ({ players }) => setGame(g => ({ ...g, phase: 'finished', players })));
     socket.on('error:gameNotFound', () => setGame('notfound'));
     socket.on('host:disconnected', () => setHostConnected(false));
@@ -38,8 +42,8 @@ export default function DisplayPage() {
       setGame(g => ({ ...g, phase: 'final-wager', fjCategory: category, wagersSubmitted: [] })));
     socket.on('game:wagerSubmitted', ({ playerName }) =>
       setGame(g => ({ ...g, wagersSubmitted: [...(g.wagersSubmitted || []), playerName] })));
-    socket.on('game:finalClue', ({ category, clue }) =>
-      setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, answersSubmitted: [] })));
+    socket.on('game:finalClue', ({ category, clue, type, mediaUrl }) =>
+      setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, fjType: type || 'regular', fjMediaUrl: mediaUrl || null, answersSubmitted: [] })));
     socket.on('game:answerSubmitted', ({ playerName }) =>
       setGame(g => ({ ...g, answersSubmitted: [...(g.answersSubmitted || []), playerName] })));
     socket.on('game:finalJudging', () =>
@@ -122,7 +126,7 @@ function LobbyDisplay({ game, gameCode }) {
 }
 
 function ClueDisplay({ game }) {
-  const { currentClue, phase, buzzedBy, players, currentPicker, buzzerState } = game;
+  const { currentClue, phase, buzzedBy, players, currentPicker, buzzerState, answerRevealed, revealedAnswer, revealedAnswerImage } = game;
   return (
     <div style={{ padding: 32, textAlign: 'center' }}>
       {currentClue && (
@@ -130,19 +134,30 @@ function ClueDisplay({ game }) {
           <div style={{ fontSize: 13, color: '#93c5fd', letterSpacing: 3, marginBottom: 12 }}>
             {currentClue.categoryIndex !== undefined ? `CLUE · $${currentClue.value}` : ''}
           </div>
-          <div style={{ fontSize: 28, fontWeight: 'bold', lineHeight: 1.5, maxWidth: 700, margin: '0 auto 32px' }}>
+          <div style={{ fontSize: 28, fontWeight: 'bold', lineHeight: 1.5, maxWidth: 700, margin: '0 auto 16px' }}>
             {currentClue.question}
           </div>
+          <ClueMedia type={currentClue.type} mediaUrl={currentClue.mediaUrl} />
+          {answerRevealed && (
+            <div style={{ marginTop: 24, padding: '16px 24px', background: '#0f172a', borderRadius: 10, display: 'inline-block' }}>
+              <div style={{ fontSize: 22, color: '#4ade80', fontWeight: 'bold', marginBottom: revealedAnswerImage ? 12 : 0 }}>
+                {revealedAnswer}
+              </div>
+              {revealedAnswerImage && (
+                <img src={revealedAnswerImage} alt="answer" style={{ maxWidth: 480, maxHeight: 320, borderRadius: 8, display: 'block', margin: '0 auto' }} />
+              )}
+            </div>
+          )}
         </>
       )}
       {phase === 'clue' && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#1e293b', border: '1px solid #f87171', borderRadius: 20, padding: '6px 16px' }}>
+        <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#1e293b', border: '1px solid #f87171', borderRadius: 20, padding: '6px 16px' }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171' }} />
           <span style={{ fontSize: 13, color: '#f87171', fontWeight: 'bold' }}>BUZZERS LOCKED</span>
         </div>
       )}
       {phase === 'judging' && buzzedBy && (
-        <div style={{ background: '#f59e0b', borderRadius: 12, padding: '16px 32px', display: 'inline-block' }}>
+        <div style={{ marginTop: 24, background: '#f59e0b', borderRadius: 12, padding: '16px 32px', display: 'inline-block' }}>
           <div style={{ fontSize: 28, fontWeight: 'bold', color: '#0a0a0a' }}>{buzzedBy.toUpperCase()}</div>
           <div style={{ fontSize: 13, color: '#78350f' }}>buzzed in first!</div>
         </div>
@@ -214,6 +229,7 @@ function DisplayFinalClue({ game }) {
       <div style={{ fontSize: 22, color: '#a5b4fc', marginBottom: 16, textAlign: 'center' }}>{game.fjCategory}</div>
       <div style={{ background: '#0f172a', borderRadius: 12, padding: 32, marginBottom: 32, textAlign: 'center' }}>
         <div style={{ fontSize: 24, lineHeight: 1.6, color: '#e2e8f0' }}>{game.fjClue}</div>
+        <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} />
       </div>
       <div style={{ textAlign: 'center', color: '#64748b', marginBottom: 20, fontSize: 16 }}>Write your answers!</div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
