@@ -42,6 +42,21 @@ function registerGameHandlers(io, socket) {
     socket.emit('player:joined', { name, gameCode });
   });
 
+  socket.on('player:rejoin', ({ gameCode, name }) => {
+    const entry = gameStore.get(gameCode);
+    if (!entry) return socket.emit('error:gameNotFound');
+    const player = entry.state.players.find(p => p.name === name);
+    if (!player) return socket.emit('error:notInGame');
+    entry.playerSockets.set(name, socket.id);
+    socket.join(gameCode);
+    const pub = entry.state.getPublicState();
+    socket.emit('player:rejoined', {
+      ...pub,
+      name,
+      fjClue: entry.state.board.finalJeopardy?.clue || null,
+    });
+  });
+
   socket.on('host:startGame', ({ gameCode }) => {
     const entry = gameStore.get(gameCode);
     if (!entry || entry.hostSocketId !== socket.id) return;

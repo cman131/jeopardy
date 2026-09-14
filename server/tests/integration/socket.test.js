@@ -86,6 +86,73 @@ describe('player:join', () => {
   });
 });
 
+describe('player:rejoin', () => {
+  test('reconnects a known player and returns current game state', async () => {
+    const { host, player1, player2, gameCode } = await createStartedGame();
+
+    player1.disconnect();
+    const rejoining = await makeClient();
+
+    const rejoined = waitFor(rejoining, 'player:rejoined');
+    rejoining.emit('player:rejoin', { gameCode, name: 'Alice' });
+    const data = await rejoined;
+
+    expect(data.name).toBe('Alice');
+    expect(data.phase).toBe('board');
+    expect(data.players.find(p => p.name === 'Alice')).toBeDefined();
+    expect(typeof data.currentRound).toBe('number');
+
+    host.disconnect();
+    player2.disconnect();
+    rejoining.disconnect();
+  });
+
+  test('emits error:gameNotFound for unknown game code', async () => {
+    const socket = await makeClient();
+    const err = waitFor(socket, 'error:gameNotFound');
+    socket.emit('player:rejoin', { gameCode: 'ZZZZ', name: 'Alice' });
+    await err;
+    socket.disconnect();
+  });
+
+  test('emits error:notInGame when player name not in game', async () => {
+    const { host, player1, player2, gameCode } = await createStartedGame();
+    const socket = await makeClient();
+
+    const err = waitFor(socket, 'error:notInGame');
+    socket.emit('player:rejoin', { gameCode, name: 'Charlie' });
+    await err;
+
+    host.disconnect();
+    player1.disconnect();
+    player2.disconnect();
+    socket.disconnect();
+  });
+
+  test('rejoined player can buzz after rejoining', async () => {
+    const { host, player1, player2, gameCode } = await createStartedGame();
+
+    host.emit('host:selectClue', { categoryIndex: 0, clueIndex: 0 });
+    await waitFor(player2, 'game:clueRevealed');
+
+    player1.disconnect();
+    const rejoining = await makeClient();
+    rejoining.emit('player:rejoin', { gameCode, name: 'Alice' });
+    await waitFor(rejoining, 'player:rejoined');
+
+    host.emit('host:unlock');
+    await waitFor(rejoining, 'game:buzzersOpen');
+
+    rejoining.emit('player:buzz');
+    const claimed = await waitFor(host, 'game:buzzClaimed');
+    expect(claimed.playerName).toBe('Alice');
+
+    host.disconnect();
+    player2.disconnect();
+    rejoining.disconnect();
+  });
+});
+
 async function createStartedGame() {
   const { gameCode } = await setupGame();
   const host = await makeClient();
