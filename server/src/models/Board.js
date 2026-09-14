@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const clueSchema = new mongoose.Schema({
   question: { type: String, required: true },
   answer: { type: String, required: true },
+  type: { type: String, enum: ['regular', 'image', 'video'], default: 'regular' },
+  mediaUrl: { type: String },
+  answerImage: { type: String },
 });
 
 const categorySchema = new mongoose.Schema({
@@ -24,6 +27,9 @@ const finalJeopardySchema = new mongoose.Schema({
   category: { type: String, required: true },
   clue: { type: String, required: true },
   answer: { type: String, required: true },
+  type: { type: String, enum: ['regular', 'image', 'video'], default: 'regular' },
+  mediaUrl: { type: String },
+  answerImage: { type: String },
 }, { _id: false });
 
 const boardSchema = new mongoose.Schema({
