@@ -50,10 +50,11 @@ function registerGameHandlers(io, socket) {
     entry.playerSockets.set(name, socket.id);
     socket.join(gameCode);
     const pub = entry.state.getPublicState();
+    const fjPhases = ['final-clue', 'final-judging', 'final-reveal'];
     socket.emit('player:rejoined', {
       ...pub,
       name,
-      fjClue: entry.state.board.finalJeopardy?.clue || null,
+      fjClue: fjPhases.includes(pub.phase) ? (entry.state.board.finalJeopardy?.clue || null) : null,
     });
   });
 
