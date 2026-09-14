@@ -72,6 +72,16 @@ export default function HostPage() {
 
   return (
     <div style={{ padding: 16, maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ textAlign: 'right', marginBottom: 12 }}>
+        <a
+          href={`/display/${gameCode}`}
+          target="_blank"
+          rel="noreferrer"
+          style={{ fontSize: 13, color: '#a5b4fc', textDecoration: 'none', background: '#1e293b', borderRadius: 6, padding: '6px 12px' }}
+        >
+          Open TV Display ↗
+        </a>
+      </div>
       {phase === 'lobby' && <HostLobby game={game} gameCode={gameCode} boardName={board.name} />}
       {phase === 'board' && <HostBoard game={game} gameCode={gameCode} board={board} />}
       {(phase === 'clue' || phase === 'judging') && <HostClue game={game} board={board} />}
@@ -142,7 +152,7 @@ function HostBoard({ game, gameCode, board }) {
 }
 
 function HostClue({ game, board }) {
-  const { currentClue, phase, buzzedBy, players } = game;
+  const { currentClue, phase, buzzedBy, players, buzzerState } = game;
   const currentRound = game.currentRound || 1;
   const currentCategories = board[`round${currentRound}`].categories;
   const clueData = currentClue && currentCategories[currentClue.categoryIndex]?.clues[currentClue.clueIndex];
@@ -172,10 +182,12 @@ function HostClue({ game, board }) {
       )}
       {phase === 'clue' && !buzzedBy && (
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={() => socket.emit('host:unlock')}
-            style={{ flex: 1, padding: 14, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>
-            🔓 Unlock Buzzers
-          </button>
+          {buzzerState !== 'open' && (
+            <button onClick={() => socket.emit('host:unlock')}
+              style={{ flex: 1, padding: 14, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>
+              🔓 Unlock Buzzers
+            </button>
+          )}
           <button onClick={() => socket.emit('host:skipClue')}
             style={{ padding: '14px 18px', background: '#374151', color: '#94a3b8', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
             Skip
