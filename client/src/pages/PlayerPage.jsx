@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 import BuzzerButton from '../components/BuzzerButton';
+import NavBreadcrumb from '../components/NavBreadcrumb';
 
 export default function PlayerPage() {
   const { gameCode } = useParams();
@@ -251,6 +252,7 @@ export default function PlayerPage() {
 
       {game.phase === 'finished' && (
         <div>
+          <NavBreadcrumb />
           <div style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 16 }}>Game Over!</div>
           {[...game.players].sort((a, b) => b.score - a.score).map((p, i) => (
             <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1e293b' }}>
