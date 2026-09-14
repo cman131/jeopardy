@@ -7,7 +7,15 @@ export default function PlayerPage() {
   const { gameCode } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
-  const myName = state?.name;
+  const nameFromState = state?.name;
+  const nameFromStorage = (() => {
+    try {
+      const s = localStorage.getItem(`jeopardy_session_${gameCode}`);
+      return s ? JSON.parse(s).name : null;
+    } catch { return null; }
+  })();
+  const myName = nameFromState || nameFromStorage;
+  const isRejoin = !!nameFromStorage && myName === nameFromStorage;
   const [game, setGame] = useState(null);
   const [error, setError] = useState(null);
   const [wagerInput, setWagerInput] = useState('');
@@ -17,11 +25,40 @@ export default function PlayerPage() {
     if (!myName) { navigate('/'); return; }
 
     socket.connect();
-    socket.emit('player:join', { gameCode, name: myName });
 
-    socket.on('player:joined', () => setGame({ phase: 'lobby', players: [], currentClue: null, buzzerState: 'locked', buzzedBy: null }));
+    if (isRejoin) {
+      socket.emit('player:rejoin', { gameCode, name: myName });
+      socket.on('player:rejoined', gs => {
+        setGame({
+          phase: gs.phase,
+          currentRound: gs.currentRound || 1,
+          players: gs.players,
+          revealedClues: gs.revealedClues,
+          buzzerState: gs.buzzerState,
+          buzzedBy: gs.buzzedBy,
+          currentPicker: gs.currentPicker,
+          currentClue: gs.currentClue,
+          fjCategory: gs.finalJeopardyCategory,
+          fjClue: gs.fjClue,
+          wagersSubmitted: gs.wagersSubmitted,
+          answersSubmitted: gs.answersSubmitted,
+          myWagerSubmitted: (gs.wagersSubmitted || []).includes(myName),
+          myAnswerSubmitted: (gs.answersSubmitted || []).includes(myName),
+        });
+      });
+      socket.on('error:notInGame', () => {
+        localStorage.removeItem(`jeopardy_session_${gameCode}`);
+        navigate('/');
+      });
+    } else {
+      socket.emit('player:join', { gameCode, name: myName });
+      socket.on('player:joined', () => {
+        localStorage.setItem(`jeopardy_session_${gameCode}`, JSON.stringify({ name: myName }));
+        setGame({ phase: 'lobby', players: [], currentClue: null, buzzerState: 'locked', buzzedBy: null });
+      });
+      socket.on('error:nameTaken', () => setError('Name already taken'));
+    }
     socket.on('error:gameNotFound', () => setError('Game not found'));
-    socket.on('error:nameTaken', () => setError('Name already taken'));
     socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
     socket.on('game:started', ({ players, currentPicker, currentRound }) =>
       setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
@@ -32,7 +69,10 @@ export default function PlayerPage() {
       setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
     socket.on('game:clueSkipped', ({ revealedClues, currentPicker }) =>
       setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null, buzzerState: 'locked' })));
-    socket.on('game:finished', ({ players }) => setGame(g => ({ ...g, phase: 'finished', players })));
+    socket.on('game:finished', ({ players }) => {
+      localStorage.removeItem(`jeopardy_session_${gameCode}`);
+      setGame(g => ({ ...g, phase: 'finished', players }));
+    });
     socket.on('game:betweenRounds', ({ players }) =>
       setGame(g => ({ ...g, phase: 'between-rounds', players })));
     socket.on('game:round2Started', ({ currentRound, currentPicker, players }) =>
@@ -53,7 +93,7 @@ export default function PlayerPage() {
       })));
 
     return () => { socket.removeAllListeners(); socket.disconnect(); };
-  }, [gameCode, myName]);
+  }, [gameCode, myName, isRejoin]);
 
   if (error) return <div style={{ padding: 40, textAlign: 'center', color: '#f87171' }}>{error} <button onClick={() => navigate('/')} style={{ color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer' }}>Go back</button></div>;
   if (!game) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Joining...</div>;
