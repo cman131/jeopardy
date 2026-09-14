@@ -99,26 +99,26 @@ export default function PlayerPage() {
     return () => { socket.removeAllListeners(); socket.disconnect(); };
   }, [gameCode, myName]);
 
-  if (error) return <div style={{ padding: 40, textAlign: 'center', color: '#f87171' }}>{error} <button onClick={() => navigate('/')} style={{ color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer' }}>Go back</button></div>;
-  if (!game) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Joining...</div>;
+  if (error) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-red)' }}>{error} <button onClick={() => navigate('/')} style={{ color: 'var(--color-label)', background: 'none', border: 'none', cursor: 'pointer' }}>Go back</button></div>;
+  if (!game) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)' }}>Joining...</div>;
 
   const myScore = game.players?.find(p => p.name === myName)?.score ?? 0;
   const isPicker = game.currentPicker === myName;
 
   return (
     <div style={{ maxWidth: 360, margin: '0 auto', padding: 24, textAlign: 'center' }}>
-      <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 4 }}>{myName}</div>
-      <div style={{ fontSize: 28, fontWeight: 'bold', color: myScore < 0 ? '#f87171' : '#4ade80', marginBottom: 16 }}>
+      <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 4 }}>{myName}</div>
+      <div style={{ fontSize: 28, fontWeight: 'bold', color: myScore < 0 ? 'var(--color-red)' : 'var(--color-green)', marginBottom: 16 }}>
         {myScore < 0 ? `-$${Math.abs(myScore)}` : `$${myScore}`}
       </div>
 
       {game.phase === 'lobby' && (
         <div>
-          <div style={{ color: '#4ade80', marginBottom: 12 }}>✓ You're in!</div>
-          <div style={{ fontSize: 13, color: '#64748b' }}>Waiting for host to start...</div>
-          <div style={{ marginTop: 16, fontSize: 12, color: '#475569' }}>Also joined:</div>
+          <div style={{ color: 'var(--color-green)', marginBottom: 12 }}>✓ You're in!</div>
+          <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>Waiting for host to start...</div>
+          <div style={{ marginTop: 16, fontSize: 12, color: 'var(--color-muted)' }}>Also joined:</div>
           {(game.players || []).filter(p => p.name !== myName).map(p => (
-            <div key={p.name} style={{ color: '#94a3b8', marginTop: 4 }}>{p.name}</div>
+            <div key={p.name} style={{ color: 'var(--color-muted)', marginTop: 4 }}>{p.name}</div>
           ))}
         </div>
       )}
@@ -126,8 +126,8 @@ export default function PlayerPage() {
       {game.phase === 'board' && (
         <div>
           {isPicker
-            ? <div style={{ background: '#fbbf24', color: '#0a0a0a', borderRadius: 8, padding: '8px 16px', fontWeight: 'bold', marginBottom: 16 }}>Your turn to pick a clue!</div>
-            : <div style={{ color: '#64748b', marginBottom: 16 }}>{game.currentPicker} is picking...</div>}
+            ? <div style={{ background: 'var(--color-amber)', color: '#0a0a0a', borderRadius: 8, padding: '8px 16px', fontWeight: 'bold', marginBottom: 16 }}>Your turn to pick a clue!</div>
+            : <div style={{ color: 'var(--color-muted)', marginBottom: 16 }}>{game.currentPicker} is picking...</div>}
           <BuzzerButton locked buzzedBy={null} myName={myName} />
         </div>
       )}
@@ -135,7 +135,7 @@ export default function PlayerPage() {
       {(game.phase === 'clue' || game.phase === 'judging') && (
         <div>
           {game.currentClue && (
-            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 24, color: '#e2e8f0' }}>
+            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 24, color: 'var(--color-white)' }}>
               {game.currentClue.question}
             </div>
           )}
@@ -150,13 +150,13 @@ export default function PlayerPage() {
 
       {game.phase === 'between-rounds' && (
         <div>
-          <div style={{ color: '#fbbf24', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>DOUBLE JEOPARDY</div>
-          <div style={{ color: '#64748b', marginBottom: 12 }}>Get ready for Round 2!</div>
-          <div style={{ fontSize: 12, color: '#475569', marginBottom: 8 }}>SCORES</div>
+          <div style={{ color: 'var(--color-amber)', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>DOUBLE JEOPARDY</div>
+          <div style={{ color: 'var(--color-muted)', marginBottom: 12 }}>Get ready for Round 2!</div>
+          <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 8 }}>SCORES</div>
           {[...(game.players || [])].sort((a, b) => b.score - a.score).map(p => (
-            <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', color: p.name === myName ? '#fbbf24' : '#64748b' }}>
+            <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', color: p.name === myName ? 'var(--color-amber)' : 'var(--color-muted)' }}>
               <span>{p.name}</span>
-              <span style={{ color: p.score < 0 ? '#f87171' : '#4ade80' }}>{p.score < 0 ? `-$${Math.abs(p.score)}` : `$${p.score}`}</span>
+              <span style={{ color: p.score < 0 ? 'var(--color-red)' : 'var(--color-green)' }}>{p.score < 0 ? `-$${Math.abs(p.score)}` : `$${p.score}`}</span>
             </div>
           ))}
         </div>
@@ -164,13 +164,13 @@ export default function PlayerPage() {
 
       {game.phase === 'final-wager' && (
         <div>
-          <div style={{ color: '#fbbf24', fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>FINAL JEOPARDY</div>
-          <div style={{ color: '#e2e8f0', fontSize: 14, marginBottom: 16 }}>{game.fjCategory}</div>
+          <div style={{ color: 'var(--color-amber)', fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>FINAL JEOPARDY</div>
+          <div style={{ color: 'var(--color-white)', fontSize: 14, marginBottom: 16 }}>{game.fjCategory}</div>
           {game.myWagerSubmitted ? (
-            <div style={{ color: '#4ade80', fontSize: 14 }}>Wager locked in! ${wagerInput}</div>
+            <div style={{ color: 'var(--color-green)', fontSize: 14 }}>Wager locked in! ${wagerInput}</div>
           ) : (
             <div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 8 }}>
                 Enter your wager (max: ${Math.max(myScore, 1000)})
               </div>
               <input
@@ -179,7 +179,7 @@ export default function PlayerPage() {
                 onChange={e => setWagerInput(e.target.value)}
                 min={0}
                 max={Math.max(myScore, 1000)}
-                style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 18, padding: '10px 12px', boxSizing: 'border-box', marginBottom: 10 }}
+                style={{ width: '100%', background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: '#fff', fontSize: 18, padding: '10px 12px', boxSizing: 'border-box', marginBottom: 10 }}
               />
               <button
                 onClick={() => {
@@ -198,12 +198,12 @@ export default function PlayerPage() {
 
       {game.phase === 'final-clue' && (
         <div>
-          <div style={{ color: '#a5b4fc', fontSize: 12, marginBottom: 8 }}>{game.fjCategory}</div>
-          <div style={{ background: '#0f172a', borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 14, lineHeight: 1.6, color: '#e2e8f0' }}>
+          <div style={{ color: 'var(--color-label)', fontSize: 12, marginBottom: 8 }}>{game.fjCategory}</div>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 14, lineHeight: 1.6, color: 'var(--color-white)' }}>
             {game.fjClue}
           </div>
           {game.myAnswerSubmitted ? (
-            <div style={{ color: '#4ade80', fontSize: 14 }}>Answer locked in!</div>
+            <div style={{ color: 'var(--color-green)', fontSize: 14 }}>Answer locked in!</div>
           ) : (
             <div>
               <textarea
@@ -211,7 +211,7 @@ export default function PlayerPage() {
                 onChange={e => setAnswerInput(e.target.value)}
                 placeholder="What is...?"
                 rows={3}
-                style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 14, padding: '10px 12px', resize: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+                style={{ width: '100%', background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: '#fff', fontSize: 14, padding: '10px 12px', resize: 'none', boxSizing: 'border-box', marginBottom: 10 }}
               />
               <button
                 onClick={() => {
@@ -227,22 +227,22 @@ export default function PlayerPage() {
       )}
 
       {game.phase === 'final-judging' && (
-        <div style={{ color: '#64748b', fontSize: 14 }}>Judging in progress...</div>
+        <div style={{ color: 'var(--color-muted)', fontSize: 14 }}>Judging in progress...</div>
       )}
 
       {game.phase === 'final-reveal' && (
         <div>
-          <div style={{ color: '#fbbf24', fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>FINAL JEOPARDY REVEAL</div>
+          <div style={{ color: 'var(--color-amber)', fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>FINAL JEOPARDY REVEAL</div>
           {(game.revealedPlayers || []).map(({ playerName, wager, answer, correct }) => (
             <div key={playerName} style={{
-              background: playerName === myName ? '#1d4ed8' : '#1e293b',
+              background: playerName === myName ? '#1d4ed8' : 'var(--bg-panel)',
               borderRadius: 8, padding: '10px 14px', marginBottom: 8,
-              border: playerName === myName ? '2px solid #60a5fa' : '1px solid #334155'
+              border: playerName === myName ? '2px solid var(--color-label)' : '1px solid var(--border-subtle)'
             }}>
-              <div style={{ fontWeight: 'bold', color: '#e2e8f0' }}>{playerName}</div>
-              <div style={{ color: '#94a3b8', fontSize: 12 }}>Wager: ${wager}</div>
-              <div style={{ color: '#94a3b8', fontSize: 12 }}>{answer || '(blank)'}</div>
-              <div style={{ color: correct ? '#4ade80' : '#f87171', fontWeight: 'bold' }}>
+              <div style={{ fontWeight: 'bold', color: 'var(--color-white)' }}>{playerName}</div>
+              <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>Wager: ${wager}</div>
+              <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>{answer || '(blank)'}</div>
+              <div style={{ color: correct ? 'var(--color-green)' : 'var(--color-red)', fontWeight: 'bold' }}>
                 {correct ? `+$${wager}` : `-$${wager}`}
               </div>
             </div>
@@ -253,11 +253,11 @@ export default function PlayerPage() {
       {game.phase === 'finished' && (
         <div>
           <NavBreadcrumb />
-          <div style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 16 }}>Game Over!</div>
+          <div style={{ fontSize: 20, fontWeight: 'bold', color: 'var(--color-amber)', marginBottom: 16 }}>Game Over!</div>
           {[...game.players].sort((a, b) => b.score - a.score).map((p, i) => (
-            <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1e293b' }}>
-              <span style={{ color: p.name === myName ? '#fbbf24' : '#94a3b8' }}>{i === 0 ? '🏆 ' : ''}{p.name}</span>
-              <span style={{ color: p.score >= 0 ? '#4ade80' : '#f87171', fontWeight: 'bold' }}>
+            <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--bg-panel)' }}>
+              <span style={{ color: p.name === myName ? 'var(--color-amber)' : 'var(--color-muted)' }}>{i === 0 ? '🏆 ' : ''}{p.name}</span>
+              <span style={{ color: p.score >= 0 ? 'var(--color-green)' : 'var(--color-red)', fontWeight: 'bold' }}>
                 {p.score < 0 ? `-$${Math.abs(p.score)}` : `$${p.score}`}
               </span>
             </div>
@@ -267,12 +267,12 @@ export default function PlayerPage() {
 
       {/* Mini scoreboard always visible during active play */}
       {game.phase !== 'lobby' && game.phase !== 'finished' && game.phase !== 'between-rounds' && game.phase !== 'final-reveal' && (
-        <div style={{ marginTop: 24, fontSize: 12, borderTop: '1px solid #1e293b', paddingTop: 12 }}>
-          <div style={{ color: '#475569', marginBottom: 6 }}>SCORES</div>
+        <div style={{ marginTop: 24, fontSize: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+          <div style={{ color: 'var(--color-muted)', marginBottom: 6 }}>SCORES</div>
           {[...(game.players || [])].sort((a, b) => b.score - a.score).map(p => (
-            <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', color: p.name === myName ? '#fbbf24' : '#64748b' }}>
+            <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', color: p.name === myName ? 'var(--color-amber)' : 'var(--color-muted)' }}>
               <span>{p.name === myName ? '▶ ' : ''}{p.name}</span>
-              <span style={{ color: p.score < 0 ? '#f87171' : '#4ade80' }}>
+              <span style={{ color: p.score < 0 ? 'var(--color-red)' : 'var(--color-green)' }}>
                 {p.score < 0 ? `-$${Math.abs(p.score)}` : `$${p.score}`}
               </span>
             </div>
