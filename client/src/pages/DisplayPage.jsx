@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import socket from '../socket';
 import GameBoard from '../components/GameBoard';
 import ScoreBar from '../components/ScoreBar';
+import QRCode from 'react-qr-code';
 
 export default function DisplayPage() {
   const { gameCode } = useParams();
@@ -87,20 +88,34 @@ export default function DisplayPage() {
 }
 
 function LobbyDisplay({ game, gameCode }) {
+  const joinUrl = `${window.location.origin}/play/${gameCode}`;
+  const displayUrl = `${window.location.hostname}/play/${gameCode}`;
+
   return (
     <div style={{ textAlign: 'center', padding: 48 }}>
       <div style={{ fontSize: 48, fontWeight: 'bold', color: '#fbbf24', letterSpacing: 6, marginBottom: 8 }}>JEOPARDY!</div>
       <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 32 }}>Join at this device's address</div>
-      <div style={{ display: 'inline-block', background: '#1e293b', border: '3px solid #fbbf24', borderRadius: 16, padding: '24px 48px', marginBottom: 40 }}>
-        <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 3, marginBottom: 8 }}>GAME CODE</div>
-        <div style={{ fontSize: 56, fontWeight: 'bold', color: '#fbbf24', letterSpacing: 12 }}>{gameCode}</div>
-      </div>
-      <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>PLAYERS JOINED</div>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-        {(game.players || []).map(p => (
-          <div key={p.name} style={{ background: '#1e40af', borderRadius: 8, padding: '10px 20px', fontSize: 16, fontWeight: 'bold' }}>{p.name}</div>
-        ))}
-        {(!game.players || game.players.length === 0) && <div style={{ color: '#475569' }}>Waiting for players...</div>}
+      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', justifyContent: 'center' }}>
+        <div style={{ background: '#1e293b', border: '3px solid #fbbf24', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+          <div style={{ background: '#fff', padding: 12, borderRadius: 8, display: 'inline-block' }}>
+            <QRCode value={joinUrl} size={160} />
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', letterSpacing: 2, marginTop: 12 }}>SCAN TO JOIN</div>
+          <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>{displayUrl}</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ background: '#1e293b', border: '3px solid #fbbf24', borderRadius: 16, padding: '24px 48px' }}>
+            <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 3, marginBottom: 8 }}>GAME CODE</div>
+            <div style={{ fontSize: 56, fontWeight: 'bold', color: '#fbbf24', letterSpacing: 12 }}>{gameCode}</div>
+          </div>
+          <div style={{ fontSize: 13, color: '#64748b' }}>PLAYERS JOINED</div>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {(game.players || []).map(p => (
+              <div key={p.name} style={{ background: '#1e40af', borderRadius: 8, padding: '10px 20px', fontSize: 16, fontWeight: 'bold' }}>{p.name}</div>
+            ))}
+            {(!game.players || game.players.length === 0) && <div style={{ color: '#475569' }}>Waiting for players...</div>}
+          </div>
+        </div>
       </div>
     </div>
   );
