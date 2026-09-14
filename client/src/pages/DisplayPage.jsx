@@ -126,43 +126,81 @@ function LobbyDisplay({ game, gameCode }) {
 }
 
 function ClueDisplay({ game }) {
-  const { currentClue, phase, buzzedBy, players, currentPicker, buzzerState, answerRevealed, revealedAnswer, revealedAnswerImage } = game;
+  const { currentClue, phase, buzzedBy, buzzerState, answerRevealed, revealedAnswer, revealedAnswerImage } = game;
+  const categoryName = game.board?.categoryNames?.[currentClue?.categoryIndex] ?? '';
+  const isBuzzedIn = phase === 'judging' && buzzedBy;
+
   return (
-    <div style={{ padding: 32, textAlign: 'center' }}>
-      {currentClue && (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'var(--bg-deep)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center',
+      padding: 48,
+      border: isBuzzedIn ? '3px solid var(--border-accent)' : '3px solid transparent',
+    }}>
+      {isBuzzedIn ? (
         <>
-          <div style={{ fontSize: 13, color: '#93c5fd', letterSpacing: 3, marginBottom: 12 }}>
-            {currentClue.categoryIndex !== undefined ? `CLUE · $${currentClue.value}` : ''}
+          <div style={{ fontSize: 11, color: 'var(--color-label)', letterSpacing: 3, marginBottom: 20 }}>
+            {categoryName} · ${currentClue?.value}
           </div>
-          <div style={{ fontSize: 28, fontWeight: 'bold', lineHeight: 1.5, maxWidth: 700, margin: '0 auto 16px' }}>
-            {currentClue.question}
+          <div style={{ fontSize: 72, fontWeight: 900, color: 'var(--color-amber)', letterSpacing: 4, lineHeight: 1 }}>
+            {buzzedBy.toUpperCase()}
           </div>
-          <ClueMedia type={currentClue.type} mediaUrl={currentClue.mediaUrl} />
-          {answerRevealed && (
-            <div style={{ marginTop: 24, padding: '16px 24px', background: '#0f172a', borderRadius: 10, display: 'inline-block' }}>
-              <div style={{ fontSize: 22, color: '#4ade80', fontWeight: 'bold', marginBottom: revealedAnswerImage ? 12 : 0 }}>
-                {revealedAnswer}
+          <div style={{ fontSize: 12, color: '#92400e', letterSpacing: 3, marginTop: 10 }}>BUZZED IN</div>
+          {currentClue && (
+            <div style={{ marginTop: 28, fontSize: 15, color: 'var(--color-muted)', fontStyle: 'italic', maxWidth: 640 }}>
+              {currentClue.question}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {currentClue && (
+            <>
+              <div style={{
+                fontSize: 11,
+                color: 'var(--color-label)',
+                letterSpacing: 3,
+                borderBottom: '1px solid var(--border-subtle)',
+                paddingBottom: 12,
+                marginBottom: 24,
+                width: '100%',
+                maxWidth: 720,
+              }}>
+                {categoryName}
               </div>
-              {revealedAnswerImage && (
-                <img src={revealedAnswerImage} alt="answer" style={{ maxWidth: 480, maxHeight: 320, borderRadius: 8, display: 'block', margin: '0 auto' }} />
+              <div style={{ fontSize: 32, fontWeight: 'bold', lineHeight: 1.5, maxWidth: 720, marginBottom: 20, color: 'var(--color-white)' }}>
+                {currentClue.question}
+              </div>
+              <ClueMedia type={currentClue.type} mediaUrl={currentClue.mediaUrl} />
+              {answerRevealed && (
+                <div style={{ marginTop: 24, padding: '16px 24px', background: 'var(--bg-surface)', borderRadius: 10, display: 'inline-block' }}>
+                  <div style={{ fontSize: 22, color: 'var(--color-green)', fontWeight: 'bold', marginBottom: revealedAnswerImage ? 12 : 0 }}>
+                    {revealedAnswer}
+                  </div>
+                  {revealedAnswerImage && (
+                    <img src={revealedAnswerImage} alt="answer" style={{ maxWidth: 480, maxHeight: 320, borderRadius: 8, display: 'block', margin: '0 auto' }} />
+                  )}
+                </div>
               )}
+              <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '4px 16px', marginTop: 20 }}>
+                <span style={{ fontSize: 11, color: 'var(--color-label)', letterSpacing: 1 }}>${currentClue.value}</span>
+              </div>
+            </>
+          )}
+          {phase === 'clue' && (
+            <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 20, padding: '6px 16px' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-red)' }} />
+              <span style={{ fontSize: 13, color: 'var(--color-red)', fontWeight: 'bold', letterSpacing: 1 }}>BUZZERS LOCKED</span>
             </div>
           )}
         </>
       )}
-      {phase === 'clue' && (
-        <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#1e293b', border: '1px solid #f87171', borderRadius: 20, padding: '6px 16px' }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171' }} />
-          <span style={{ fontSize: 13, color: '#f87171', fontWeight: 'bold' }}>BUZZERS LOCKED</span>
-        </div>
-      )}
-      {phase === 'judging' && buzzedBy && (
-        <div style={{ marginTop: 24, background: '#f59e0b', borderRadius: 12, padding: '16px 32px', display: 'inline-block' }}>
-          <div style={{ fontSize: 28, fontWeight: 'bold', color: '#0a0a0a' }}>{buzzedBy.toUpperCase()}</div>
-          <div style={{ fontSize: 13, color: '#78350f' }}>buzzed in first!</div>
-        </div>
-      )}
-      <ScoreBar players={players} currentPicker={phase === 'board' ? currentPicker : null} />
     </div>
   );
 }
