@@ -68,8 +68,8 @@ export default function HostPage() {
     return () => { socket.removeAllListeners(); socket.disconnect(); };
   }, [gameCode]);
 
-  if (error) return <div style={{ padding: 40, color: '#f87171' }}>{error}</div>;
-  if (!game || !board) return <div style={{ padding: 40, color: '#94a3b8' }}>Connecting...</div>;
+  if (error) return <div style={{ padding: 40, color: 'var(--color-red)' }}>{error}</div>;
+  if (!game || !board) return <div style={{ padding: 40, color: 'var(--color-muted)' }}>Connecting...</div>;
 
   const phase = game.phase;
 
@@ -80,7 +80,7 @@ export default function HostPage() {
           href={`/display/${gameCode}`}
           target="_blank"
           rel="noreferrer"
-          style={{ fontSize: 13, color: '#a5b4fc', textDecoration: 'none', background: '#1e293b', borderRadius: 6, padding: '6px 12px' }}
+          style={{ fontSize: 13, color: 'var(--color-label)', textDecoration: 'none', background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '6px 12px' }}
         >
           Open TV Display ↗
         </a>
@@ -110,23 +110,23 @@ export default function HostPage() {
 function HostLobby({ game, gameCode, boardName }) {
   return (
     <div>
-      <div style={{ background: '#0f172a', borderRadius: 12, padding: 20, textAlign: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 3, marginBottom: 6 }}>GAME CODE</div>
-        <div style={{ fontSize: 40, fontWeight: 'bold', color: '#fbbf24', letterSpacing: 8 }}>{gameCode}</div>
-        <div style={{ fontSize: 12, color: '#a5b4fc', marginTop: 6 }}>Board: {boardName}</div>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, textAlign: 'center', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: 'var(--color-muted)', letterSpacing: 3, marginBottom: 6 }}>GAME CODE</div>
+        <div style={{ fontSize: 40, fontWeight: 'bold', color: 'var(--color-amber)', letterSpacing: 8 }}>{gameCode}</div>
+        <div style={{ fontSize: 12, color: 'var(--color-label)', marginTop: 6 }}>Board: {boardName}</div>
       </div>
       <div style={{ marginBottom: 16 }}>
         {(game.players || []).map(p => (
-          <div key={p.name} style={{ background: '#1e293b', borderRadius: 6, padding: '10px 14px', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>{p.name}</span>
-            <span style={{ fontSize: 11, color: '#4ade80' }}>● connected</span>
+          <div key={p.name} style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '10px 14px', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'var(--color-white)' }}>{p.name}</span>
+            <span style={{ fontSize: 11, color: 'var(--color-green)' }}>● connected</span>
           </div>
         ))}
       </div>
       <button
         disabled={(game.players || []).length < 2}
         onClick={() => socket.emit('host:startGame', { gameCode })}
-        style={{ width: '100%', padding: 16, background: (game.players || []).length >= 2 ? '#16a34a' : '#1e293b', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: (game.players || []).length >= 2 ? 'pointer' : 'not-allowed' }}
+        style={{ width: '100%', padding: 16, background: (game.players || []).length >= 2 ? '#16a34a' : 'var(--bg-panel)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: (game.players || []).length >= 2 ? 'pointer' : 'not-allowed' }}
       >
         ▶ Start Game {(game.players || []).length < 2 ? '(need 2+ players)' : ''}
       </button>
@@ -139,7 +139,7 @@ function HostBoard({ game, gameCode, board }) {
   const categoryNames = board[`round${currentRound}`].categories.map(c => c.name);
   return (
     <div>
-      <div style={{ background: '#fbbf24', color: '#0a0a0a', borderRadius: 8, padding: '8px 14px', textAlign: 'center', fontWeight: 'bold', marginBottom: 12 }}>
+      <div style={{ background: 'var(--color-amber)', color: '#0a0a0a', borderRadius: 8, padding: '8px 14px', textAlign: 'center', fontWeight: 'bold', marginBottom: 12 }}>
         🎯 {game.currentPicker} is selecting the next clue
       </div>
       <GameBoard categoryNames={categoryNames} revealedClues={game.revealedClues || []} onSelect={(ci, qi) => socket.emit('host:selectClue', { categoryIndex: ci, clueIndex: qi })} round={game.currentRound || 1} />
@@ -164,23 +164,24 @@ function HostClue({ game, board }) {
   return (
     <div>
       {buzzedBy && (
-        <div style={{ background: '#f59e0b', borderRadius: 8, padding: '10px 14px', textAlign: 'center', marginBottom: 14 }}>
-          <div style={{ fontWeight: 'bold', fontSize: 16, color: '#0a0a0a' }}>{buzzedBy} is answering</div>
+        <div style={{ background: 'var(--color-amber)', borderRadius: 8, padding: '10px 14px', textAlign: 'center', marginBottom: 14 }}>
+          <div style={{ fontWeight: 'bold', fontSize: 16, color: '#0a0a0a' }}>{buzzedBy}</div>
+          <div style={{ fontSize: 11, color: '#78350f', letterSpacing: 1 }}>IS ANSWERING</div>
         </div>
       )}
       {clueData && (
         <>
-          <div style={{ fontSize: 11, color: '#a5b4fc', letterSpacing: 2, marginBottom: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--color-label)', letterSpacing: 2, marginBottom: 6 }}>
             {currentCategories[currentClue.categoryIndex].name} · ${clueValue}
           </div>
-          <div style={{ background: '#0f172a', borderRadius: 8, padding: 14, marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>CLUE</div>
-            <div style={{ fontSize: 15, lineHeight: 1.5 }}>{clueData.question}</div>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 14, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-muted)', letterSpacing: 1, marginBottom: 4 }}>CLUE</div>
+            <div style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--color-white)' }}>{clueData.question}</div>
             <ClueMedia type={clueData.type} mediaUrl={clueData.mediaUrl} compact />
           </div>
-          <div style={{ background: '#14532d', border: '1px solid #16a34a', borderRadius: 8, padding: 14, marginBottom: 16 }}>
-            <div style={{ fontSize: 11, color: '#86efac', marginBottom: 4 }}>ANSWER</div>
-            <div style={{ fontSize: 17, fontWeight: 'bold', color: '#4ade80' }}>{clueData.answer}</div>
+          <div style={{ background: '#0a1f0f', border: '1px solid #16a34a', borderRadius: 8, padding: 14, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-green)', letterSpacing: 1, marginBottom: 4 }}>ANSWER</div>
+            <div style={{ fontSize: 17, fontWeight: 'bold', color: 'var(--color-green)' }}>{clueData.answer}</div>
             {clueData.answerImage && (
               <img src={clueData.answerImage} alt="answer" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 6, marginTop: 8, display: 'block' }} />
             )}
@@ -191,12 +192,12 @@ function HostClue({ game, board }) {
         <div style={{ display: 'flex', gap: 10 }}>
           {buzzerState !== 'open' && (
             <button onClick={() => socket.emit('host:unlock')}
-              style={{ flex: 1, padding: 14, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>
+              style={{ flex: 1, padding: 14, background: 'var(--bg-panel)', border: '2px solid var(--color-green)', color: 'var(--color-green)', borderRadius: 8, fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>
               🔓 Unlock Buzzers
             </button>
           )}
           <button onClick={() => socket.emit('host:skipClue')}
-            style={{ padding: '14px 18px', background: '#374151', color: '#94a3b8', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            style={{ padding: '14px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--color-muted)', borderRadius: 8, cursor: 'pointer' }}>
             Skip
           </button>
         </div>
@@ -207,16 +208,16 @@ function HostClue({ game, board }) {
             <button
               onClick={() => socket.emit('host:revealAnswer')}
               disabled={answerRevealed}
-              style={{ width: '100%', padding: '10px 0', background: answerRevealed ? '#334155' : '#7c3aed', color: answerRevealed ? '#64748b' : '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 'bold', cursor: answerRevealed ? 'not-allowed' : 'pointer', marginBottom: 4 }}>
+              style={{ width: '100%', padding: '10px 0', background: answerRevealed ? 'var(--bg-surface)' : '#7c3aed', color: answerRevealed ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 'bold', cursor: answerRevealed ? 'not-allowed' : 'pointer', marginBottom: 4 }}>
               {answerRevealed ? '✓ Answer Revealed' : '🖼 Reveal Answer on Display'}
             </button>
           )}
           <button onClick={() => socket.emit('host:judge', { result: 'correct' })}
-            style={{ flex: 1, padding: 16, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: 16, background: '#14532d', border: '2px solid #16a34a', color: 'var(--color-green)', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', lineHeight: 1.3 }}>
             ✓ Correct<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>+${clueValue}</span>
           </button>
           <button onClick={() => socket.emit('host:judge', { result: 'incorrect' })}
-            style={{ flex: 1, padding: 16, background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: 16, background: '#450a0a', border: '2px solid #b91c1c', color: 'var(--color-red)', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', lineHeight: 1.3 }}>
             ✗ Incorrect<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>-${clueValue}</span>
           </button>
         </div>
@@ -231,11 +232,11 @@ function HostFinished({ players }) {
   return (
     <div style={{ textAlign: 'center', padding: 32 }}>
       <NavBreadcrumb />
-      <div style={{ fontSize: 28, fontWeight: 'bold', color: '#fbbf24', marginBottom: 24 }}>Game Over!</div>
+      <div style={{ fontSize: 28, fontWeight: 'bold', color: 'var(--color-amber)', marginBottom: 24 }}>Game Over!</div>
       {sorted.map((p, i) => (
-        <div key={p.name} style={{ background: '#1e293b', borderRadius: 8, padding: '12px 24px', margin: '8px auto', maxWidth: 320, display: 'flex', justifyContent: 'space-between' }}>
+        <div key={p.name} style={{ background: 'var(--bg-panel)', borderRadius: 8, padding: '12px 24px', margin: '8px auto', maxWidth: 320, display: 'flex', justifyContent: 'space-between' }}>
           <span>{i === 0 ? '🏆 ' : ''}{p.name}</span>
-          <span style={{ fontWeight: 'bold', color: p.score >= 0 ? '#4ade80' : '#f87171' }}>
+          <span style={{ fontWeight: 'bold', color: p.score >= 0 ? 'var(--color-green)' : 'var(--color-red)' }}>
             {p.score < 0 ? `-$${Math.abs(p.score)}` : `$${p.score}`}
           </span>
         </div>
@@ -248,12 +249,12 @@ function HostBetweenRounds({ game }) {
   const sorted = [...(game.players || [])].sort((a, b) => b.score - a.score);
   return (
     <div style={{ textAlign: 'center', padding: 32 }}>
-      <div style={{ fontSize: 32, fontWeight: 'bold', color: '#fbbf24', marginBottom: 8, letterSpacing: 2 }}>DOUBLE JEOPARDY</div>
-      <div style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>Round 1 complete</div>
+      <div style={{ fontSize: 32, fontWeight: 'bold', color: 'var(--color-amber)', marginBottom: 8, letterSpacing: 2 }}>DOUBLE JEOPARDY</div>
+      <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 24 }}>Round 1 complete</div>
       {sorted.map((p, i) => (
-        <div key={p.name} style={{ background: '#1e293b', borderRadius: 8, padding: '10px 20px', margin: '6px auto', maxWidth: 300, display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: '#e2e8f0' }}>{i === 0 ? '👑 ' : ''}{p.name}</span>
-          <span style={{ fontWeight: 'bold', color: p.score >= 0 ? '#4ade80' : '#f87171' }}>
+        <div key={p.name} style={{ background: 'var(--bg-panel)', borderRadius: 8, padding: '10px 20px', margin: '6px auto', maxWidth: 300, display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ color: 'var(--color-white)' }}>{i === 0 ? '👑 ' : ''}{p.name}</span>
+          <span style={{ fontWeight: 'bold', color: p.score >= 0 ? 'var(--color-green)' : 'var(--color-red)' }}>
             {p.score < 0 ? `-$${Math.abs(p.score)}` : `$${p.score}`}
           </span>
         </div>
@@ -272,16 +273,16 @@ function HostFinalWager({ game }) {
   const total = (game.players || []).length;
   return (
     <div style={{ textAlign: 'center', padding: 32 }}>
-      <div style={{ fontSize: 28, fontWeight: 'bold', color: '#fbbf24', marginBottom: 8 }}>FINAL JEOPARDY</div>
-      <div style={{ fontSize: 18, color: '#e2e8f0', marginBottom: 4 }}>{game.fjCategory}</div>
-      <div style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>Place your wagers!</div>
-      <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 16 }}>{submitted.length}/{total} submitted</div>
+      <div style={{ fontSize: 28, fontWeight: 'bold', color: 'var(--color-amber)', marginBottom: 8 }}>FINAL JEOPARDY</div>
+      <div style={{ fontSize: 18, color: 'var(--color-white)', marginBottom: 4 }}>{game.fjCategory}</div>
+      <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 24 }}>Place your wagers!</div>
+      <div style={{ fontSize: 14, color: 'var(--color-muted)', marginBottom: 16 }}>{submitted.length}/{total} submitted</div>
       {(game.players || []).map(p => (
-        <div key={p.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1e293b', borderRadius: 20, padding: '6px 14px', margin: 4 }}>
-          <span style={{ color: submitted.includes(p.name) ? '#4ade80' : '#94a3b8' }}>
+        <div key={p.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-panel)', borderRadius: 20, padding: '6px 14px', margin: 4 }}>
+          <span style={{ color: submitted.includes(p.name) ? 'var(--color-green)' : 'var(--color-muted)' }}>
             {submitted.includes(p.name) ? '✓' : '⏳'}
           </span>
-          <span style={{ color: '#e2e8f0', fontSize: 13 }}>{p.name}</span>
+          <span style={{ color: 'var(--color-white)', fontSize: 13 }}>{p.name}</span>
         </div>
       ))}
       <div style={{ marginTop: 24 }}>
@@ -300,18 +301,18 @@ function HostFinalClue({ game }) {
   const total = (game.players || []).length;
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>{game.fjCategory}</div>
-      <div style={{ background: '#0f172a', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 15, lineHeight: 1.6, color: '#e2e8f0' }}>{game.fjClue}</div>
+      <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>{game.fjCategory}</div>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--color-white)' }}>{game.fjClue}</div>
         <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} compact />
       </div>
-      <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12 }}>Answers: {submitted.length}/{total}</div>
+      <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 12 }}>Answers: {submitted.length}/{total}</div>
       {(game.players || []).map(p => (
-        <div key={p.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1e293b', borderRadius: 20, padding: '6px 14px', margin: 4 }}>
-          <span style={{ color: submitted.includes(p.name) ? '#4ade80' : '#94a3b8' }}>
+        <div key={p.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-panel)', borderRadius: 20, padding: '6px 14px', margin: 4 }}>
+          <span style={{ color: submitted.includes(p.name) ? 'var(--color-green)' : 'var(--color-muted)' }}>
             {submitted.includes(p.name) ? '✓' : '⏳'}
           </span>
-          <span style={{ color: '#e2e8f0', fontSize: 13 }}>{p.name}</span>
+          <span style={{ color: 'var(--color-white)', fontSize: 13 }}>{p.name}</span>
         </div>
       ))}
       <div style={{ marginTop: 20 }}>
@@ -330,17 +331,17 @@ function HostFinalJudging({ game, judgments, onJudge }) {
   const allJudged = answers.length > 0 && answers.every(a => judgments[a.playerName] !== undefined);
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 20 }}>Judge Final Answers</div>
+      <div style={{ fontSize: 20, fontWeight: 'bold', color: 'var(--color-amber)', marginBottom: 20 }}>Judge Final Answers</div>
       {game.fjAnswerImage && (
         <div style={{ marginBottom: 20, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>ANSWER IMAGE</div>
+          <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 6 }}>ANSWER IMAGE</div>
           <img src={game.fjAnswerImage} alt="FJ answer" style={{ maxWidth: '100%', maxHeight: 280, borderRadius: 8 }} />
         </div>
       )}
       {answers.map(({ playerName, answer }) => (
-        <div key={playerName} style={{ background: '#1e293b', borderRadius: 8, padding: '12px 16px', marginBottom: 12 }}>
-          <div style={{ fontWeight: 'bold', color: '#e2e8f0', marginBottom: 6 }}>{playerName}</div>
-          <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 10, fontStyle: 'italic' }}>{answer || '(blank)'}</div>
+        <div key={playerName} style={{ background: 'var(--bg-panel)', borderRadius: 8, padding: '12px 16px', marginBottom: 12 }}>
+          <div style={{ fontWeight: 'bold', color: 'var(--color-white)', marginBottom: 6 }}>{playerName}</div>
+          <div style={{ color: 'var(--color-muted)', fontSize: 13, marginBottom: 10, fontStyle: 'italic' }}>{answer || '(blank)'}</div>
           {judgments[playerName] === undefined ? (
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => onJudge(playerName, true)}
@@ -353,13 +354,13 @@ function HostFinalJudging({ game, judgments, onJudge }) {
               </button>
             </div>
           ) : (
-            <div style={{ color: judgments[playerName] ? '#4ade80' : '#f87171', fontWeight: 'bold' }}>
+            <div style={{ color: judgments[playerName] ? 'var(--color-green)' : 'var(--color-red)', fontWeight: 'bold' }}>
               {judgments[playerName] ? '✓ Correct' : '✗ Incorrect'}
             </div>
           )}
         </div>
       ))}
-      {allJudged && <div style={{ color: '#64748b', fontSize: 13, marginTop: 8 }}>All judged — waiting for server...</div>}
+      {allJudged && <div style={{ color: 'var(--color-muted)', fontSize: 13, marginTop: 8 }}>All judged — waiting for server...</div>}
     </div>
   );
 }
@@ -368,13 +369,13 @@ function HostFinalReveal({ game }) {
   const revealed = game.revealedPlayers || [];
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 20 }}>Final Jeopardy Reveal</div>
+      <div style={{ fontSize: 20, fontWeight: 'bold', color: 'var(--color-amber)', marginBottom: 20 }}>Final Jeopardy Reveal</div>
       {revealed.map(({ playerName, wager, answer, correct }) => (
-        <div key={playerName} style={{ background: '#1e293b', borderRadius: 8, padding: '12px 16px', marginBottom: 10 }}>
-          <div style={{ fontWeight: 'bold', color: '#e2e8f0', marginBottom: 4 }}>{playerName}</div>
-          <div style={{ color: '#94a3b8', fontSize: 12 }}>Wager: ${wager}</div>
-          <div style={{ color: '#94a3b8', fontSize: 12 }}>Answer: {answer || '(blank)'}</div>
-          <div style={{ color: correct ? '#4ade80' : '#f87171', fontWeight: 'bold', marginTop: 4 }}>{correct ? `+$${wager}` : `-$${wager}`}</div>
+        <div key={playerName} style={{ background: 'var(--bg-panel)', borderRadius: 8, padding: '12px 16px', marginBottom: 10 }}>
+          <div style={{ fontWeight: 'bold', color: 'var(--color-white)', marginBottom: 4 }}>{playerName}</div>
+          <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>Wager: ${wager}</div>
+          <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>Answer: {answer || '(blank)'}</div>
+          <div style={{ color: correct ? 'var(--color-green)' : 'var(--color-red)', fontWeight: 'bold', marginTop: 4 }}>{correct ? `+$${wager}` : `-$${wager}`}</div>
         </div>
       ))}
       <button
