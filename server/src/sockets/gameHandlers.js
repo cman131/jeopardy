@@ -216,6 +216,8 @@ function registerGameHandlers(io, socket) {
         io.to(gameCode).emit('game:finalClue', {
           category: gs.board.finalJeopardy.category,
           clue: gs.board.finalJeopardy.clue,
+          type: gs.board.finalJeopardy.type || 'regular',
+          mediaUrl: gs.board.finalJeopardy.mediaUrl || null,
         });
       }
     } catch (e) {
@@ -233,6 +235,8 @@ function registerGameHandlers(io, socket) {
       io.to(gameCode).emit('game:finalClue', {
         category: gs.board.finalJeopardy.category,
         clue: gs.board.finalJeopardy.clue,
+        type: gs.board.finalJeopardy.type || 'regular',
+        mediaUrl: gs.board.finalJeopardy.mediaUrl || null,
       });
     } catch (e) {
       socket.emit('error:generic', { message: e.message });
@@ -253,7 +257,10 @@ function registerGameHandlers(io, socket) {
       io.to(gameCode).emit('game:answerSubmitted', { playerName });
       if (gs.phase === 'final-judging') {
         const answers = [...gs.finalAnswers.entries()].map(([name, ans]) => ({ playerName: name, answer: ans }));
-        io.to(entry.hostSocketId).emit('game:finalJudgingReady', { answers });
+        io.to(entry.hostSocketId).emit('game:finalJudgingReady', {
+          answers,
+          fjAnswerImage: gs.board.finalJeopardy.answerImage || null,
+        });
         io.to(gameCode).emit('game:finalJudging');
       }
     } catch (e) {
@@ -269,7 +276,10 @@ function registerGameHandlers(io, socket) {
     try {
       gs.closeAnswers();
       const answers = [...gs.finalAnswers.entries()].map(([name, ans]) => ({ playerName: name, answer: ans }));
-      io.to(entry.hostSocketId).emit('game:finalJudgingReady', { answers });
+      io.to(entry.hostSocketId).emit('game:finalJudgingReady', {
+        answers,
+        fjAnswerImage: gs.board.finalJeopardy.answerImage || null,
+      });
       io.to(gameCode).emit('game:finalJudging');
     } catch (e) {
       socket.emit('error:generic', { message: e.message });
@@ -317,6 +327,19 @@ function registerGameHandlers(io, socket) {
     entry.state.endGame();
     await Game.updateOne({ gameCode }, { $set: { status: 'finished', completedAt: new Date() } });
     io.to(gameCode).emit('game:finished', { players: entry.state.players });
+  });
+
+  socket.on('host:revealAnswer', () => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    if (entry.state.phase !== 'judging') return;
+    const gameCode = _gameCodeFor(socket);
+    const { categoryIndex, clueIndex } = entry.state.currentClue;
+    const clue = entry.state.board[`round${entry.state.currentRound}`].categories[categoryIndex].clues[clueIndex];
+    io.to(gameCode).emit('game:answerRevealed', {
+      answer: clue.answer,
+      answerImage: clue.answerImage || null,
+    });
   });
 
   socket.on('disconnect', () => {

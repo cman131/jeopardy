@@ -392,3 +392,147 @@ describe('multi-round socket flow', () => {
     player2.disconnect();
   }, 40000);
 });
+
+describe('host:revealAnswer', () => {
+  async function reachJudgingPhase(gameCode) {
+    const host = await makeClient();
+    const display = await makeClient();
+    const p1 = await makeClient();
+    const p2 = await makeClient();
+    host.emit('host:join', { gameCode });
+    await waitFor(host, 'host:joined');
+    display.emit('display:join', { gameCode });
+    await waitFor(display, 'display:joined');
+    p1.emit('player:join', { gameCode, name: 'Alice' });
+    await waitFor(p1, 'player:joined');
+    p2.emit('player:join', { gameCode, name: 'Bob' });
+    await waitFor(p2, 'player:joined');
+    host.emit('host:startGame', { gameCode });
+    await waitFor(host, 'host:state');
+    host.emit('host:selectClue', { categoryIndex: 0, clueIndex: 0 });
+    await waitFor(host, 'host:clue');
+    host.emit('host:unlock');
+    await waitFor(display, 'game:buzzersOpen');
+    p1.emit('player:buzz');
+    await waitFor(display, 'game:buzzClaimed');
+    return { host, display, p1, p2 };
+  }
+
+  test('broadcasts game:answerRevealed with answer and answerImage', async () => {
+    const board = makeTestBoard();
+    board.round1.categories[0].clues[0].answerImage = 'https://example.com/ans.jpg';
+    const boardDoc = await Board.create(board);
+    const gameCode = gameStore.create(boardDoc.toObject());
+    await Game.create({ boardId: boardDoc._id, gameCode });
+
+    const { host, display, p1, p2 } = await reachJudgingPhase(gameCode);
+    const revealed = waitFor(display, 'game:answerRevealed');
+    host.emit('host:revealAnswer');
+    const data = await revealed;
+    expect(data.answer).toBe('R1-A0-0');
+    expect(data.answerImage).toBe('https://example.com/ans.jpg');
+    host.disconnect(); display.disconnect(); p1.disconnect(); p2.disconnect();
+  });
+
+  test('game:answerRevealed has null answerImage when clue has none', async () => {
+    const { gameCode } = await setupGame();
+    const { host, display, p1, p2 } = await reachJudgingPhase(gameCode);
+    const revealed = waitFor(display, 'game:answerRevealed');
+    host.emit('host:revealAnswer');
+    const data = await revealed;
+    expect(data.answer).toBe('R1-A0-0');
+    expect(data.answerImage).toBeNull();
+    host.disconnect(); display.disconnect(); p1.disconnect(); p2.disconnect();
+  });
+
+  test('host:revealAnswer is ignored outside judging phase', async () => {
+    const { gameCode } = await setupGame();
+    const host = await makeClient();
+    host.emit('host:join', { gameCode });
+    await waitFor(host, 'host:joined');
+    let received = false;
+    host.on('game:answerRevealed', () => { received = true; });
+    host.emit('host:revealAnswer');
+    await new Promise(r => setTimeout(r, 100));
+    expect(received).toBe(false);
+    host.disconnect();
+  });
+});
+
+describe('FJ socket events include media fields', () => {
+  function forceFinalWager(gameCode) {
+    const entry = gameStore.get(gameCode);
+    entry.state.players = [{ name: 'Alice', score: 0, scoreHistory: [] }];
+    entry.state.phase = 'final-wager';
+  }
+
+  function forceFinalClue(gameCode) {
+    const entry = gameStore.get(gameCode);
+    entry.state.players = [{ name: 'Alice', score: 0, scoreHistory: [] }];
+    entry.state.phase = 'final-clue';
+  }
+
+  test('game:finalClue includes type and mediaUrl', async () => {
+    const board = makeTestBoard({
+      finalJeopardy: {
+        category: 'FJ-CAT', clue: 'FJ-CLUE', answer: 'FJ-ANSWER',
+        type: 'image', mediaUrl: 'https://example.com/fj.jpg',
+      },
+    });
+    const boardDoc = await Board.create(board);
+    const gameCode = gameStore.create(boardDoc.toObject());
+    await Game.create({ boardId: boardDoc._id, gameCode });
+
+    const host = await makeClient();
+    const display = await makeClient();
+    host.emit('host:join', { gameCode });
+    await waitFor(host, 'host:joined');
+    display.emit('display:join', { gameCode });
+    await waitFor(display, 'display:joined');
+
+    forceFinalWager(gameCode);
+    const finalClue = waitFor(display, 'game:finalClue');
+    host.emit('host:closeWagers');
+    const data = await finalClue;
+    expect(data.type).toBe('image');
+    expect(data.mediaUrl).toBe('https://example.com/fj.jpg');
+    host.disconnect(); display.disconnect();
+  });
+
+  test('game:finalJudgingReady includes fjAnswerImage', async () => {
+    const board = makeTestBoard({
+      finalJeopardy: {
+        category: 'FJ-CAT', clue: 'FJ-CLUE', answer: 'FJ-ANSWER',
+        answerImage: 'https://example.com/fjans.jpg',
+      },
+    });
+    const boardDoc = await Board.create(board);
+    const gameCode = gameStore.create(boardDoc.toObject());
+    await Game.create({ boardId: boardDoc._id, gameCode });
+
+    const host = await makeClient();
+    host.emit('host:join', { gameCode });
+    await waitFor(host, 'host:joined');
+
+    forceFinalClue(gameCode);
+    const judging = waitFor(host, 'game:finalJudgingReady');
+    host.emit('host:closeAnswers');
+    const data = await judging;
+    expect(data.fjAnswerImage).toBe('https://example.com/fjans.jpg');
+    host.disconnect();
+  });
+
+  test('game:finalJudgingReady has null fjAnswerImage when not set', async () => {
+    const { gameCode } = await setupGame();
+    const host = await makeClient();
+    host.emit('host:join', { gameCode });
+    await waitFor(host, 'host:joined');
+
+    forceFinalClue(gameCode);
+    const judging = waitFor(host, 'game:finalJudgingReady');
+    host.emit('host:closeAnswers');
+    const data = await judging;
+    expect(data.fjAnswerImage).toBeNull();
+    host.disconnect();
+  });
+});
