@@ -18,104 +18,163 @@ export default function BoardEditorGrid({ categories, values, onChange }) {
     onChange(updated);
   }
 
+  const activeClue = activeCell
+    ? (categories[activeCell.ci]?.clues[activeCell.qi] || { question: '', answer: '', type: 'regular', mediaUrl: '', answerImage: '' })
+    : null;
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
-      {categories.map((cat, ci) => (
-        <div key={ci}>
-          <input
-            value={cat.name}
-            onChange={e => updateCategory(ci, e.target.value)}
-            style={{ width: '100%', background: '#1d4ed8', border: '1px solid #3b82f6', borderRadius: 6, padding: '7px 4px', fontSize: 11, fontWeight: 'bold', color: '#fff', textAlign: 'center', boxSizing: 'border-box', marginBottom: 4 }}
-          />
-          {values.map((value, qi) => {
-            const clue = cat.clues[qi] || { question: '', answer: '' };
-            const type = clue.type || 'regular';
-            const complete = !!(clue.question && clue.answer && (type === 'regular' || clue.mediaUrl));
-            const isActive = activeCell?.ci === ci && activeCell?.qi === qi;
-            return (
-              <div key={qi} style={{ marginBottom: 4 }}>
-                {!isActive ? (
-                  <div
-                    onClick={() => setActiveCell({ ci, qi })}
-                    style={{ background: '#0f172a', border: `1px solid ${complete ? '#334155' : '#1e293b'}`, borderRadius: 5, padding: '7px 6px', cursor: 'pointer', opacity: complete ? 1 : 0.5 }}
-                  >
-                    <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 'bold' }}>${value} {complete ? '✓' : ''}</div>
-                    {!complete && <div style={{ fontSize: 9, color: '#475569', fontStyle: 'italic' }}>Click to add...</div>}
-                    {complete && (
-                      <div style={{ fontSize: 9, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {type === 'image' ? '📷 ' : type === 'video' ? '▶ ' : ''}{clue.question}
-                      </div>
-                    )}
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+        {categories.map((cat, ci) => (
+          <div key={ci}>
+            <input
+              value={cat.name}
+              onChange={e => updateCategory(ci, e.target.value)}
+              style={{ width: '100%', background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '8px 4px', fontSize: 11, fontWeight: 'bold', color: 'var(--color-white)', textAlign: 'center', boxSizing: 'border-box', marginBottom: 4 }}
+            />
+            {values.map((value, qi) => {
+              const clue = cat.clues[qi] || { question: '', answer: '' };
+              const type = clue.type || 'regular';
+              const complete = !!(clue.question && clue.answer && (type === 'regular' || clue.mediaUrl));
+              const isActive = activeCell?.ci === ci && activeCell?.qi === qi;
+              return (
+                <div
+                  key={qi}
+                  onClick={() => setActiveCell({ ci, qi })}
+                  style={{
+                    marginBottom: 4,
+                    background: 'var(--bg-surface)',
+                    border: isActive ? '2px solid var(--border-accent)' : complete ? '1px solid var(--border-subtle)' : '1px dashed var(--border-subtle)',
+                    borderRadius: 5,
+                    padding: '8px 6px',
+                    cursor: 'pointer',
+                    opacity: complete ? 1 : 0.6,
+                    boxShadow: isActive ? '0 0 8px rgba(251,191,36,0.3)' : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: 10, color: 'var(--color-amber)', fontWeight: 'bold' }}>
+                    ${value}{complete ? ' ✓' : ''}
                   </div>
-                ) : (
-                  <div style={{ background: '#1e293b', border: '2px solid #7c3aed', borderRadius: 5, padding: 8 }}>
-                    <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 'bold', marginBottom: 6 }}>${value}</div>
-
-                    {/* Type selector */}
-                    <div style={{ display: 'flex', gap: 3, marginBottom: 6 }}>
-                      {['regular', 'image', 'video'].map(t => (
-                        <button
-                          key={t}
-                          onClick={() => updateClue(ci, qi, 'type', t)}
-                          style={{
-                            flex: 1, padding: '3px 0', fontSize: 9, fontWeight: 'bold', cursor: 'pointer',
-                            background: (clue.type || 'regular') === t ? '#7c3aed' : '#0f172a',
-                            color: (clue.type || 'regular') === t ? '#fff' : '#475569',
-                            border: `1px solid ${(clue.type || 'regular') === t ? '#7c3aed' : '#334155'}`,
-                            borderRadius: 3,
-                          }}
-                        >
-                          {t === 'regular' ? 'Text' : t === 'image' ? '📷 Img' : '▶ Vid'}
-                        </button>
-                      ))}
+                  {complete ? (
+                    <div style={{ fontSize: 9, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                      {type === 'image' ? '📷 ' : type === 'video' ? '▶ ' : ''}{clue.question}
                     </div>
+                  ) : (
+                    <div style={{ fontSize: 9, color: '#374151', fontStyle: 'italic', marginTop: 2 }}>Click to add...</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
 
-                    {/* Media URL (image or video) */}
-                    {(clue.type === 'image' || clue.type === 'video') && (
-                      <>
-                        <div style={{ fontSize: 10, color: '#c4b5fd', marginBottom: 3 }}>
-                          {clue.type === 'image' ? 'IMAGE URL' : 'YOUTUBE URL'}
-                        </div>
-                        <input
-                          value={clue.mediaUrl || ''}
-                          onChange={e => updateClue(ci, qi, 'mediaUrl', e.target.value)}
-                          placeholder={clue.type === 'image' ? 'https://...' : 'https://youtube.com/watch?v=...'}
-                          style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 4, color: '#fff', fontSize: 10, padding: 5, boxSizing: 'border-box', marginBottom: 5 }}
-                        />
-                      </>
-                    )}
+      {activeCell && activeClue && (
+        <ClueModal
+          ci={activeCell.ci}
+          qi={activeCell.qi}
+          value={values[activeCell.qi]}
+          categoryName={categories[activeCell.ci]?.name || ''}
+          clue={activeClue}
+          onUpdate={(field, value) => updateClue(activeCell.ci, activeCell.qi, field, value)}
+          onClose={() => setActiveCell(null)}
+        />
+      )}
+    </>
+  );
+}
 
-                    <div style={{ fontSize: 10, color: '#a5b4fc', marginBottom: 3 }}>CLUE</div>
-                    <textarea
-                      value={clue.question}
-                      onChange={e => updateClue(ci, qi, 'question', e.target.value)}
-                      rows={3}
-                      style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 4, color: '#fff', fontSize: 10, padding: 5, resize: 'none', boxSizing: 'border-box' }}
-                    />
+function ClueModal({ ci, qi, value, categoryName, clue, onUpdate, onClose }) {
+  const type = clue.type || 'regular';
 
-                    <div style={{ fontSize: 10, color: '#86efac', margin: '5px 0 3px' }}>ANSWER</div>
-                    <input
-                      value={clue.answer}
-                      onChange={e => updateClue(ci, qi, 'answer', e.target.value)}
-                      style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 4, color: '#4ade80', fontSize: 10, padding: 5, boxSizing: 'border-box' }}
-                    />
-
-                    <div style={{ fontSize: 10, color: '#64748b', margin: '5px 0 3px' }}>ANSWER IMAGE (optional)</div>
-                    <input
-                      value={clue.answerImage || ''}
-                      onChange={e => updateClue(ci, qi, 'answerImage', e.target.value)}
-                      placeholder="https://..."
-                      style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 4, color: '#94a3b8', fontSize: 10, padding: 5, boxSizing: 'border-box' }}
-                    />
-
-                    <button onClick={() => setActiveCell(null)} style={{ marginTop: 6, width: '100%', background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 4, padding: 4, fontSize: 10, cursor: 'pointer' }}>Done</button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 24, width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: 'var(--color-amber)', fontWeight: 'bold', letterSpacing: 1 }}>
+            {categoryName} · ${value}
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--color-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>✕</button>
         </div>
-      ))}
+
+        <div style={{ fontSize: 10, color: 'var(--color-label)', letterSpacing: 1, marginBottom: 6 }}>CLUE TYPE</div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {['regular', 'image', 'video'].map(t => (
+            <button
+              key={t}
+              onClick={() => onUpdate('type', t)}
+              style={{
+                flex: 1, padding: '8px 0', fontSize: 11, fontWeight: 'bold', cursor: 'pointer',
+                background: type === t ? '#7c3aed' : 'var(--bg-surface)',
+                color: type === t ? '#fff' : 'var(--color-muted)',
+                border: `1px solid ${type === t ? '#7c3aed' : 'var(--border-subtle)'}`,
+                borderRadius: 5,
+              }}
+            >
+              {t === 'regular' ? 'Text' : t === 'image' ? '📷 Image' : '▶ Video'}
+            </button>
+          ))}
+        </div>
+
+        {(type === 'image' || type === 'video') && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: 'var(--color-label)', letterSpacing: 1, marginBottom: 6 }}>
+              {type === 'image' ? 'IMAGE URL' : 'YOUTUBE URL'}
+            </div>
+            <input
+              value={clue.mediaUrl || ''}
+              onChange={e => onUpdate('mediaUrl', e.target.value)}
+              placeholder={type === 'image' ? 'https://...' : 'https://youtube.com/watch?v=...'}
+              style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-white)', fontSize: 13, padding: '10px 12px', boxSizing: 'border-box' }}
+            />
+          </div>
+        )}
+
+        <div style={{ fontSize: 10, color: 'var(--color-label)', letterSpacing: 1, marginBottom: 6 }}>CLUE</div>
+        <textarea
+          value={clue.question}
+          onChange={e => onUpdate('question', e.target.value)}
+          rows={4}
+          placeholder="Write the clue here..."
+          style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-white)', fontSize: 14, padding: '10px 12px', resize: 'vertical', boxSizing: 'border-box', marginBottom: 16 }}
+        />
+
+        <div style={{ fontSize: 10, color: 'var(--color-green)', letterSpacing: 1, marginBottom: 6 }}>ANSWER</div>
+        <input
+          value={clue.answer}
+          onChange={e => onUpdate('answer', e.target.value)}
+          placeholder="What is...?"
+          style={{ width: '100%', background: '#0a1f0f', border: '1px solid #16a34a', borderRadius: 6, color: 'var(--color-green)', fontSize: 14, padding: '10px 12px', boxSizing: 'border-box', marginBottom: 16 }}
+        />
+
+        <div style={{ fontSize: 10, color: 'var(--color-muted)', letterSpacing: 1, marginBottom: 6 }}>
+          ANSWER IMAGE <span style={{ color: '#374151' }}>(optional)</span>
+        </div>
+        <input
+          value={clue.answerImage || ''}
+          onChange={e => onUpdate('answerImage', e.target.value)}
+          placeholder="https://..."
+          style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-muted)', fontSize: 13, padding: '10px 12px', boxSizing: 'border-box', marginBottom: 20 }}
+        />
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onClose}
+            style={{ flex: 1, padding: 12, background: '#14532d', border: '1px solid #16a34a', color: 'var(--color-green)', borderRadius: 6, fontSize: 13, fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            Save &amp; Close
+          </button>
+          <button
+            onClick={onClose}
+            style={{ padding: '12px 20px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--color-muted)', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
