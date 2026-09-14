@@ -462,3 +462,48 @@ describe('GameState — getPublicState / getHostState', () => {
     expect(gs.revealedClues).toHaveLength(1); // internal state unchanged
   });
 });
+
+describe('GameState — media clue fields', () => {
+  function makeBoardWithMedia() {
+    const board = makeBoard();
+    board.round1.categories[0].clues[0].type = 'image';
+    board.round1.categories[0].clues[0].mediaUrl = 'https://example.com/img.jpg';
+    board.round1.categories[0].clues[0].answerImage = 'https://example.com/ans.jpg';
+    return board;
+  }
+
+  function startAndSelect(board) {
+    const gs = new GameState(board);
+    gs.addPlayer('Alice'); gs.addPlayer('Bob');
+    gs.startGame();
+    gs.selectClue(0, 0);
+    return gs;
+  }
+
+  test('getPublicState includes type and mediaUrl for image clue', () => {
+    const pub = startAndSelect(makeBoardWithMedia()).getPublicState();
+    expect(pub.currentClue.type).toBe('image');
+    expect(pub.currentClue.mediaUrl).toBe('https://example.com/img.jpg');
+  });
+
+  test('getPublicState defaults to type regular and null mediaUrl when fields absent', () => {
+    const pub = startAndSelect(makeBoard()).getPublicState();
+    expect(pub.currentClue.type).toBe('regular');
+    expect(pub.currentClue.mediaUrl).toBeNull();
+  });
+
+  test('getPublicState does NOT expose answerImage', () => {
+    const pub = startAndSelect(makeBoardWithMedia()).getPublicState();
+    expect(pub.currentClue.answerImage).toBeUndefined();
+  });
+
+  test('getHostState includes answerImage', () => {
+    const host = startAndSelect(makeBoardWithMedia()).getHostState();
+    expect(host.currentClue.answerImage).toBe('https://example.com/ans.jpg');
+  });
+
+  test('getHostState answerImage is null when clue has none', () => {
+    const host = startAndSelect(makeBoard()).getHostState();
+    expect(host.currentClue.answerImage).toBeNull();
+  });
+});

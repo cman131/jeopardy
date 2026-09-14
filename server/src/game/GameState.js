@@ -233,6 +233,8 @@ class GameState {
         clueIndex: this.currentClue.clueIndex,
         question: this._currentCategories()[this.currentClue.categoryIndex].clues[this.currentClue.clueIndex].question,
         value: clueValue(this.currentRound, this.currentClue.clueIndex),
+        type: this._currentCategories()[this.currentClue.categoryIndex].clues[this.currentClue.clueIndex].type || 'regular',
+        mediaUrl: this._currentCategories()[this.currentClue.categoryIndex].clues[this.currentClue.clueIndex].mediaUrl || null,
       } : null,
       wagersSubmitted: [...this.finalWagers.keys()],
       answersSubmitted: [...this.finalAnswers.keys()],
@@ -244,7 +246,9 @@ class GameState {
   getHostState() {
     const state = this.getPublicState();
     if (this.currentClue) {
-      state.currentClue.answer = this._currentCategories()[this.currentClue.categoryIndex].clues[this.currentClue.clueIndex].answer;
+      const clue = this._currentCategories()[this.currentClue.categoryIndex].clues[this.currentClue.clueIndex];
+      state.currentClue.answer = clue.answer;
+      state.currentClue.answerImage = clue.answerImage || null;
     }
     if (this.phase === 'final-judging') {
       state.finalAnswers = Object.fromEntries(this.finalAnswers);
