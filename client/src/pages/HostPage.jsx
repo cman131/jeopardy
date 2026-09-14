@@ -4,6 +4,7 @@ import socket from '../socket';
 import GameBoard from '../components/GameBoard';
 import ScoreBar from '../components/ScoreBar';
 import ClueMedia from '../components/ClueMedia';
+import NavBreadcrumb from '../components/NavBreadcrumb';
 
 export default function HostPage() {
   const { gameCode } = useParams();
@@ -229,6 +230,7 @@ function HostFinished({ players }) {
   const sorted = [...players].sort((a, b) => b.score - a.score);
   return (
     <div style={{ textAlign: 'center', padding: 32 }}>
+      <NavBreadcrumb />
       <div style={{ fontSize: 28, fontWeight: 'bold', color: '#fbbf24', marginBottom: 24 }}>Game Over!</div>
       {sorted.map((p, i) => (
         <div key={p.name} style={{ background: '#1e293b', borderRadius: 8, padding: '12px 24px', margin: '8px auto', maxWidth: 320, display: 'flex', justifyContent: 'space-between' }}>
