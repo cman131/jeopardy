@@ -1,0 +1,23 @@
+:root {
+  --bg-deep: #050a14;
+  --bg-panel: #0d1b35;
+  --bg-surface: #0a1628;
+  --border-subtle: #1e3a6e;
+  --border-accent: #fbbf24;
+  --color-amber: #fbbf24;
+  --color-white: #e2e8f0;
+  --color-muted: #6b7280;
+  --color-label: #c0cfe8;
+  --color-green: #4ade80;
+  --color-red: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-deep);
+  color: var(--color-white);
+  margin: 0;
+}
