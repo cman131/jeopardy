@@ -12,7 +12,7 @@ export default function HomePage() {
     if (code.length === 4) {
       try {
         const s = localStorage.getItem(`jeopardy_session_${code}`);
-        if (s) setName(JSON.parse(s).name);
+        if (s && !name) setName(JSON.parse(s).name);
       } catch {}
     }
   }
