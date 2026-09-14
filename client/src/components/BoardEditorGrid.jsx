@@ -29,7 +29,8 @@ export default function BoardEditorGrid({ categories, values, onChange }) {
           />
           {values.map((value, qi) => {
             const clue = cat.clues[qi] || { question: '', answer: '' };
-            const complete = !!(clue.question && clue.answer);
+            const type = clue.type || 'regular';
+            const complete = !!(clue.question && clue.answer && (type === 'regular' || clue.mediaUrl));
             const isActive = activeCell?.ci === ci && activeCell?.qi === qi;
             return (
               <div key={qi} style={{ marginBottom: 4 }}>
@@ -40,11 +41,50 @@ export default function BoardEditorGrid({ categories, values, onChange }) {
                   >
                     <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 'bold' }}>${value} {complete ? '✓' : ''}</div>
                     {!complete && <div style={{ fontSize: 9, color: '#475569', fontStyle: 'italic' }}>Click to add...</div>}
-                    {complete && <div style={{ fontSize: 9, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{clue.question}</div>}
+                    {complete && (
+                      <div style={{ fontSize: 9, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {type === 'image' ? '📷 ' : type === 'video' ? '▶ ' : ''}{clue.question}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div style={{ background: '#1e293b', border: '2px solid #7c3aed', borderRadius: 5, padding: 8 }}>
-                    <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 'bold', marginBottom: 4 }}>${value}</div>
+                    <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 'bold', marginBottom: 6 }}>${value}</div>
+
+                    {/* Type selector */}
+                    <div style={{ display: 'flex', gap: 3, marginBottom: 6 }}>
+                      {['regular', 'image', 'video'].map(t => (
+                        <button
+                          key={t}
+                          onClick={() => updateClue(ci, qi, 'type', t)}
+                          style={{
+                            flex: 1, padding: '3px 0', fontSize: 9, fontWeight: 'bold', cursor: 'pointer',
+                            background: (clue.type || 'regular') === t ? '#7c3aed' : '#0f172a',
+                            color: (clue.type || 'regular') === t ? '#fff' : '#475569',
+                            border: `1px solid ${(clue.type || 'regular') === t ? '#7c3aed' : '#334155'}`,
+                            borderRadius: 3,
+                          }}
+                        >
+                          {t === 'regular' ? 'Text' : t === 'image' ? '📷 Img' : '▶ Vid'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Media URL (image or video) */}
+                    {(clue.type === 'image' || clue.type === 'video') && (
+                      <>
+                        <div style={{ fontSize: 10, color: '#c4b5fd', marginBottom: 3 }}>
+                          {clue.type === 'image' ? 'IMAGE URL' : 'YOUTUBE URL'}
+                        </div>
+                        <input
+                          value={clue.mediaUrl || ''}
+                          onChange={e => updateClue(ci, qi, 'mediaUrl', e.target.value)}
+                          placeholder={clue.type === 'image' ? 'https://...' : 'https://youtube.com/watch?v=...'}
+                          style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 4, color: '#fff', fontSize: 10, padding: 5, boxSizing: 'border-box', marginBottom: 5 }}
+                        />
+                      </>
+                    )}
+
                     <div style={{ fontSize: 10, color: '#a5b4fc', marginBottom: 3 }}>CLUE</div>
                     <textarea
                       value={clue.question}
@@ -52,12 +92,22 @@ export default function BoardEditorGrid({ categories, values, onChange }) {
                       rows={3}
                       style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 4, color: '#fff', fontSize: 10, padding: 5, resize: 'none', boxSizing: 'border-box' }}
                     />
+
                     <div style={{ fontSize: 10, color: '#86efac', margin: '5px 0 3px' }}>ANSWER</div>
                     <input
                       value={clue.answer}
                       onChange={e => updateClue(ci, qi, 'answer', e.target.value)}
                       style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 4, color: '#4ade80', fontSize: 10, padding: 5, boxSizing: 'border-box' }}
                     />
+
+                    <div style={{ fontSize: 10, color: '#64748b', margin: '5px 0 3px' }}>ANSWER IMAGE (optional)</div>
+                    <input
+                      value={clue.answerImage || ''}
+                      onChange={e => updateClue(ci, qi, 'answerImage', e.target.value)}
+                      placeholder="https://..."
+                      style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 4, color: '#94a3b8', fontSize: 10, padding: 5, boxSizing: 'border-box' }}
+                    />
+
                     <button onClick={() => setActiveCell(null)} style={{ marginTop: 6, width: '100%', background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 4, padding: 4, fontSize: 10, cursor: 'pointer' }}>Done</button>
                   </div>
                 )}
