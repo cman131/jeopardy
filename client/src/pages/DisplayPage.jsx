@@ -89,7 +89,7 @@ export default function DisplayPage() {
 
 function LobbyDisplay({ game, gameCode }) {
   const joinUrl = `${window.location.origin}/play/${gameCode}`;
-  const displayUrl = `${window.location.hostname}/play/${gameCode}`;
+  const displayUrl = `${window.location.host}/play/${gameCode}`;
 
   return (
     <div style={{ textAlign: 'center', padding: 48 }}>
