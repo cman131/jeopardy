@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 import BuzzerButton from '../components/BuzzerButton';
@@ -15,7 +15,7 @@ export default function PlayerPage() {
     } catch { return null; }
   })();
   const myName = nameFromState || nameFromStorage;
-  const isRejoin = !!nameFromStorage && myName === nameFromStorage;
+  const isRejoin = useRef(!!nameFromStorage && myName === nameFromStorage).current;
   const [game, setGame] = useState(null);
   const [error, setError] = useState(null);
   const [wagerInput, setWagerInput] = useState('');
@@ -93,7 +93,7 @@ export default function PlayerPage() {
       })));
 
     return () => { socket.removeAllListeners(); socket.disconnect(); };
-  }, [gameCode, myName, isRejoin]);
+  }, [gameCode, myName]);
 
   if (error) return <div style={{ padding: 40, textAlign: 'center', color: '#f87171' }}>{error} <button onClick={() => navigate('/')} style={{ color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer' }}>Go back</button></div>;
   if (!game) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Joining...</div>;
