@@ -28,7 +28,7 @@ export default function PlayerPage() {
 
     if (isRejoin) {
       socket.emit('player:rejoin', { gameCode, name: myName });
-      socket.on('player:rejoined', gs => {
+      socket.once('player:rejoined', gs => {
         setGame({
           phase: gs.phase,
           currentRound: gs.currentRound || 1,
@@ -58,7 +58,10 @@ export default function PlayerPage() {
       });
       socket.on('error:nameTaken', () => setError('Name already taken'));
     }
-    socket.on('error:gameNotFound', () => setError('Game not found'));
+    socket.on('error:gameNotFound', () => {
+      if (isRejoin) localStorage.removeItem(`jeopardy_session_${gameCode}`);
+      setError('Game not found');
+    });
     socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
     socket.on('game:started', ({ players, currentPicker, currentRound }) =>
       setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
