@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import socket from '../socket';
 import GameBoard from '../components/GameBoard';
 import ScoreBar from '../components/ScoreBar';
+import ClueMedia from '../components/ClueMedia';
 
 export default function HostPage() {
   const { gameCode } = useParams();
@@ -30,13 +31,14 @@ export default function HostPage() {
       socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
       socket.on('game:started', ({ players, currentPicker, currentRound }) =>
         setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null })));
-      socket.on('host:clue', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null })));
+      socket.on('host:clue', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, answerRevealed: false })));
       socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
       socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName })));
       socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
-        setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null })));
+        setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, answerRevealed: false })));
       socket.on('game:clueSkipped', ({ revealedClues, currentPicker }) =>
-        setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null })));
+        setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null, answerRevealed: false })));
+      socket.on('game:answerRevealed', () => setGame(g => ({ ...g, answerRevealed: true })));
       socket.on('game:finished', ({ players }) => setGame(g => ({ ...g, phase: 'finished', players })));
       socket.on('game:betweenRounds', ({ players }) =>
         setGame(g => ({ ...g, phase: 'between-rounds', players })));
@@ -46,12 +48,12 @@ export default function HostPage() {
         setGame(g => ({ ...g, phase: 'final-wager', fjCategory: category, wagersSubmitted: [] })));
       socket.on('game:wagerSubmitted', ({ playerName }) =>
         setGame(g => ({ ...g, wagersSubmitted: [...(g.wagersSubmitted || []), playerName] })));
-      socket.on('game:finalClue', ({ category, clue }) =>
-        setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, answersSubmitted: [] })));
+      socket.on('game:finalClue', ({ category, clue, type, mediaUrl }) =>
+        setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, fjType: type || 'regular', fjMediaUrl: mediaUrl || null, answersSubmitted: [] })));
       socket.on('game:answerSubmitted', ({ playerName }) =>
         setGame(g => ({ ...g, answersSubmitted: [...(g.answersSubmitted || []), playerName] })));
-      socket.on('game:finalJudgingReady', ({ answers }) =>
-        setGame(g => ({ ...g, phase: 'final-judging', fjAnswers: answers })));
+      socket.on('game:finalJudgingReady', ({ answers, fjAnswerImage }) =>
+        setGame(g => ({ ...g, phase: 'final-judging', fjAnswers: answers, fjAnswerImage: fjAnswerImage || null })));
       socket.on('game:revealReady', ({ players }) =>
         setGame(g => ({ ...g, phase: 'final-reveal', players, revealedPlayers: [] })));
       socket.on('game:finalReveal', ({ playerName, wager, answer, correct, players }) =>
@@ -152,7 +154,7 @@ function HostBoard({ game, gameCode, board }) {
 }
 
 function HostClue({ game, board }) {
-  const { currentClue, phase, buzzedBy, players, buzzerState } = game;
+  const { currentClue, phase, buzzedBy, players, buzzerState, answerRevealed } = game;
   const currentRound = game.currentRound || 1;
   const currentCategories = board[`round${currentRound}`].categories;
   const clueData = currentClue && currentCategories[currentClue.categoryIndex]?.clues[currentClue.clueIndex];
@@ -173,10 +175,14 @@ function HostClue({ game, board }) {
           <div style={{ background: '#0f172a', borderRadius: 8, padding: 14, marginBottom: 12 }}>
             <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>CLUE</div>
             <div style={{ fontSize: 15, lineHeight: 1.5 }}>{clueData.question}</div>
+            <ClueMedia type={clueData.type} mediaUrl={clueData.mediaUrl} compact />
           </div>
           <div style={{ background: '#14532d', border: '1px solid #16a34a', borderRadius: 8, padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 11, color: '#86efac', marginBottom: 4 }}>ANSWER</div>
             <div style={{ fontSize: 17, fontWeight: 'bold', color: '#4ade80' }}>{clueData.answer}</div>
+            {clueData.answerImage && (
+              <img src={clueData.answerImage} alt="answer" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 6, marginTop: 8, display: 'block' }} />
+            )}
           </div>
         </>
       )}
@@ -195,7 +201,15 @@ function HostClue({ game, board }) {
         </div>
       )}
       {phase === 'judging' && clueData && (
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {clueData.answerImage && (
+            <button
+              onClick={() => socket.emit('host:revealAnswer')}
+              disabled={answerRevealed}
+              style={{ width: '100%', padding: '10px 0', background: answerRevealed ? '#334155' : '#7c3aed', color: answerRevealed ? '#64748b' : '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 'bold', cursor: answerRevealed ? 'not-allowed' : 'pointer', marginBottom: 4 }}>
+              {answerRevealed ? '✓ Answer Revealed' : '🖼 Reveal Answer on Display'}
+            </button>
+          )}
           <button onClick={() => socket.emit('host:judge', { result: 'correct' })}
             style={{ flex: 1, padding: 16, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
             ✓ Correct<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>+${clueValue}</span>
@@ -287,6 +301,7 @@ function HostFinalClue({ game }) {
       <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>{game.fjCategory}</div>
       <div style={{ background: '#0f172a', borderRadius: 8, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 15, lineHeight: 1.6, color: '#e2e8f0' }}>{game.fjClue}</div>
+        <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} compact />
       </div>
       <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12 }}>Answers: {submitted.length}/{total}</div>
       {(game.players || []).map(p => (
@@ -314,6 +329,12 @@ function HostFinalJudging({ game, judgments, onJudge }) {
   return (
     <div style={{ padding: 24 }}>
       <div style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 20 }}>Judge Final Answers</div>
+      {game.fjAnswerImage && (
+        <div style={{ marginBottom: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>ANSWER IMAGE</div>
+          <img src={game.fjAnswerImage} alt="FJ answer" style={{ maxWidth: '100%', maxHeight: 280, borderRadius: 8 }} />
+        </div>
+      )}
       {answers.map(({ playerName, answer }) => (
         <div key={playerName} style={{ background: '#1e293b', borderRadius: 8, padding: '12px 16px', marginBottom: 12 }}>
           <div style={{ fontWeight: 'bold', color: '#e2e8f0', marginBottom: 6 }}>{playerName}</div>
