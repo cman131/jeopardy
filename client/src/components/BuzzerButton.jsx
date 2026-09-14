@@ -16,19 +16,19 @@ export default function BuzzerButton({ locked, onBuzz, buzzedBy, myName }) {
           alignItems: 'center',
           justifyContent: 'center',
           cursor: locked || buzzedBy ? 'not-allowed' : 'pointer',
-          background: isMine ? '#16a34a' : locked || isOther ? '#1e293b' : '#1d4ed8',
-          border: `4px solid ${isMine ? '#4ade80' : locked || isOther ? '#334155' : '#3b82f6'}`,
+          background: isMine ? '#14532d' : locked || isOther ? 'var(--bg-panel)' : '#1d4ed8',
+          border: `4px solid ${isMine ? 'var(--color-green)' : locked || isOther ? 'var(--border-subtle)' : '#3b82f6'}`,
           opacity: locked || isOther ? 0.4 : 1,
           fontSize: 14,
           fontWeight: 'bold',
-          color: locked || isOther ? '#64748b' : '#fff',
+          color: isMine ? 'var(--color-green)' : locked || isOther ? 'var(--color-muted)' : '#fff',
           userSelect: 'none',
           transition: 'all 0.1s',
         }}
       >
         {isMine ? 'YOU!' : 'BUZZ'}
       </div>
-      <div style={{ marginTop: 10, fontSize: 12, color: '#64748b' }}>
+      <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-muted)' }}>
         {isMine ? 'Answer out loud!' : isOther ? `${buzzedBy} is answering...` : locked ? '🔒 Locked' : 'Buzzers open!'}
       </div>
     </div>

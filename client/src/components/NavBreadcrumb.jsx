@@ -7,9 +7,9 @@ export default function NavBreadcrumb() {
       <button
         onClick={() => navigate('/')}
         style={{
-          background: '#1e293b',
-          color: '#94a3b8',
-          border: 'none',
+          background: 'var(--bg-panel)',
+          color: 'var(--color-muted)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 6,
           padding: '6px 12px',
           fontSize: 13,
