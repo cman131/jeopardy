@@ -145,9 +145,11 @@ function ClueDisplay({ game }) {
     }}>
       {isBuzzedIn ? (
         <>
-          <div style={{ fontSize: 11, color: 'var(--color-label)', letterSpacing: 3, marginBottom: 20 }}>
-            {categoryName} · ${currentClue?.value}
-          </div>
+          {categoryName && currentClue && (
+            <div style={{ fontSize: 11, color: 'var(--color-label)', letterSpacing: 3, marginBottom: 20 }}>
+              {categoryName} · ${currentClue.value}
+            </div>
+          )}
           <div style={{ fontSize: 72, fontWeight: 900, color: 'var(--color-amber)', letterSpacing: 4, lineHeight: 1 }}>
             {buzzedBy.toUpperCase()}
           </div>
