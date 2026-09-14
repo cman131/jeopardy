@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BoardEditorGrid from '../components/BoardEditorGrid';
+import NavBreadcrumb from '../components/NavBreadcrumb';
 
 const R1_VALUES = [200, 400, 600, 800, 1000];
 const R2_VALUES = [400, 800, 1200, 1600, 2000];
@@ -211,6 +212,7 @@ export default function EditorPage() {
 
       {/* Main editor area */}
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+        <NavBreadcrumb />
         {error && (
           <div style={{ background: '#450a0a', border: '1px solid #b91c1c', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#fca5a5' }}>
             {error}
