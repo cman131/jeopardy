@@ -178,8 +178,8 @@ export default function EditorPage() {
 
   const tabStyle = (tab) => ({
     padding: '8px 16px',
-    background: activeTab === tab ? '#1d4ed8' : '#1e293b',
-    color: activeTab === tab ? '#fff' : '#64748b',
+    background: activeTab === tab ? '#1d4ed8' : 'var(--bg-panel)',
+    color: activeTab === tab ? '#fff' : 'var(--color-muted)',
     border: 'none',
     borderRadius: '6px 6px 0 0',
     cursor: 'pointer',
@@ -190,23 +190,23 @@ export default function EditorPage() {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar */}
-      <div style={{ width: 200, background: '#0f172a', borderRight: '1px solid #1e293b', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div style={{ padding: '14px 12px', borderBottom: '1px solid #1e293b', fontSize: 12, fontWeight: 'bold', color: '#e2e8f0', letterSpacing: 1 }}>MY BOARDS</div>
+      <div style={{ width: 200, background: 'var(--bg-surface)', borderRight: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-subtle)', fontSize: 12, fontWeight: 'bold', color: 'var(--color-white)', letterSpacing: 1 }}>MY BOARDS</div>
         <div style={{ flex: 1, overflow: 'auto', padding: 8 }}>
           {boards.map(b => (
             <div key={b._id} onClick={() => selectBoard(b._id)}
-              style={{ background: b._id === activeBoardId ? '#1d4ed8' : '#0f172a', borderRadius: 6, padding: '8px 10px', marginBottom: 4, cursor: 'pointer' }}>
-              <div style={{ fontSize: 11, color: b._id === activeBoardId ? '#fff' : '#94a3b8' }}>{b.name}</div>
+              style={{ background: b._id === activeBoardId ? '#1d4ed8' : 'var(--bg-surface)', borderRadius: 6, padding: '8px 10px', marginBottom: 4, cursor: 'pointer' }}>
+              <div style={{ fontSize: 11, color: b._id === activeBoardId ? '#fff' : 'var(--color-muted)' }}>{b.name}</div>
             </div>
           ))}
           <button onClick={newBoard}
-            style={{ width: '100%', background: '#0f172a', border: '1px dashed #334155', color: '#64748b', borderRadius: 6, padding: 7, fontSize: 10, cursor: 'pointer', marginTop: 4 }}>
+            style={{ width: '100%', background: 'var(--bg-surface)', border: '1px dashed var(--border-subtle)', color: 'var(--color-muted)', borderRadius: 6, padding: 7, fontSize: 10, cursor: 'pointer', marginTop: 4 }}>
             + New Board
           </button>
         </div>
-        <div style={{ padding: 8, borderTop: '1px solid #1e293b', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <button onClick={importJson} style={{ background: '#1e293b', border: 'none', color: '#94a3b8', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬆ Import JSON</button>
-          <button onClick={exportJson} style={{ background: '#1e293b', border: 'none', color: '#94a3b8', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬇ Export JSON</button>
+        <div style={{ padding: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <button onClick={importJson} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬆ Import JSON</button>
+          <button onClick={exportJson} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬇ Export JSON</button>
         </div>
       </div>
 
@@ -214,7 +214,7 @@ export default function EditorPage() {
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
         <NavBreadcrumb />
         {error && (
-          <div style={{ background: '#450a0a', border: '1px solid #b91c1c', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#fca5a5' }}>
+          <div style={{ background: '#450a0a', border: '1px solid #b91c1c', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: 'var(--color-red)' }}>
             {error}
           </div>
         )}
@@ -225,14 +225,14 @@ export default function EditorPage() {
             onChange={e => { setBoard(b => ({ ...b, name: e.target.value })); setDirty(true); }}
             placeholder="Board name"
             maxLength={80}
-            style={{ flex: 1, background: '#1e293b', border: '1px solid #334155', borderRadius: 6, padding: '8px 12px', fontSize: 15, color: '#fff' }}
+            style={{ flex: 1, background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '8px 12px', fontSize: 15, color: 'var(--color-white)' }}
           />
-          <span style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>
-            R1: <span style={{ color: r1 === 30 ? '#4ade80' : '#94a3b8' }}>{r1}/30</span>
+          <span style={{ fontSize: 11, color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
+            R1: <span style={{ color: r1 === 30 ? 'var(--color-green)' : 'var(--color-muted)' }}>{r1}/30</span>
             {' · '}
-            R2: <span style={{ color: r2 === 30 ? '#4ade80' : '#94a3b8' }}>{r2}/30</span>
+            R2: <span style={{ color: r2 === 30 ? 'var(--color-green)' : 'var(--color-muted)' }}>{r2}/30</span>
             {' · '}
-            FJ: <span style={{ color: fj === 1 ? '#4ade80' : '#94a3b8' }}>{fj}/1</span>
+            FJ: <span style={{ color: fj === 1 ? 'var(--color-green)' : 'var(--color-muted)' }}>{fj}/1</span>
           </span>
           <button onClick={save} disabled={saving}
             style={{ padding: '8px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>
@@ -240,19 +240,19 @@ export default function EditorPage() {
           </button>
           <button onClick={play} disabled={!allFilled}
             title={!allFilled ? 'Board must be complete (R1: 30/30, R2: 30/30, FJ: 1/1) to play' : ''}
-            style={{ padding: '8px 18px', background: allFilled ? '#1d4ed8' : '#1e293b', color: allFilled ? '#fff' : '#475569', border: 'none', borderRadius: 6, cursor: allFilled ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}>
+            style={{ padding: '8px 18px', background: allFilled ? '#1d4ed8' : 'var(--bg-panel)', color: allFilled ? '#fff' : 'var(--color-muted)', border: 'none', borderRadius: 6, cursor: allFilled ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}>
             ▶ Play
           </button>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 0, borderBottom: '1px solid #1e293b' }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 0, borderBottom: '1px solid var(--border-subtle)' }}>
           <button style={tabStyle('round1')} onClick={() => setActiveTab('round1')}>ROUND 1</button>
           <button style={tabStyle('round2')} onClick={() => setActiveTab('round2')}>ROUND 2</button>
           <button style={tabStyle('finalJeopardy')} onClick={() => setActiveTab('finalJeopardy')}>FINAL JEOPARDY</button>
         </div>
 
-        <div style={{ background: '#0f172a', borderRadius: '0 0 8px 8px', padding: 12 }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: '0 0 8px 8px', padding: 16 }}>
           {activeTab === 'round1' && (
             <BoardEditorGrid
               key={activeBoardId ? `${activeBoardId}-r1` : 'new-r1'}
@@ -283,17 +283,17 @@ function FinalJeopardyTab({ fj, onChange }) {
   return (
     <div style={{ maxWidth: 480 }}>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>CATEGORY</div>
+        <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>CATEGORY</div>
         <input
           value={fj.category}
           onChange={e => onChange({ ...fj, category: e.target.value })}
           placeholder="e.g. POTENT POTABLES"
-          style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 14, padding: '8px 10px', boxSizing: 'border-box' }}
+          style={{ width: '100%', background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-white)', fontSize: 14, padding: '8px 10px', boxSizing: 'border-box' }}
         />
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>CLUE TYPE</div>
+        <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>CLUE TYPE</div>
         <div style={{ display: 'flex', gap: 6 }}>
           {['regular', 'image', 'video'].map(t => (
             <button
@@ -301,9 +301,9 @@ function FinalJeopardyTab({ fj, onChange }) {
               onClick={() => onChange({ ...fj, type: t, mediaUrl: '' })}
               style={{
                 flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 'bold', cursor: 'pointer',
-                background: type === t ? '#7c3aed' : '#1e293b',
-                color: type === t ? '#fff' : '#475569',
-                border: `1px solid ${type === t ? '#7c3aed' : '#334155'}`,
+                background: type === t ? '#7c3aed' : 'var(--bg-panel)',
+                color: type === t ? '#fff' : 'var(--color-muted)',
+                border: `1px solid ${type === t ? '#7c3aed' : 'var(--border-subtle)'}`,
                 borderRadius: 5,
               }}
             >
@@ -315,51 +315,51 @@ function FinalJeopardyTab({ fj, onChange }) {
 
       {type !== 'regular' && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>
             {type === 'image' ? 'IMAGE URL' : 'YOUTUBE URL'}
           </div>
           <input
             value={fj.mediaUrl || ''}
             onChange={e => onChange({ ...fj, mediaUrl: e.target.value })}
             placeholder={type === 'image' ? 'https://...' : 'https://youtube.com/watch?v=...'}
-            style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
+            style={{ width: '100%', background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-white)', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
           />
         </div>
       )}
 
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>CLUE</div>
+        <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>CLUE</div>
         <textarea
           value={fj.clue}
           onChange={e => onChange({ ...fj, clue: e.target.value })}
           rows={4}
           placeholder="This is the Final Jeopardy clue..."
-          style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 13, padding: '8px 10px', resize: 'vertical', boxSizing: 'border-box' }}
+          style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-white)', fontSize: 13, padding: '8px 10px', resize: 'vertical', boxSizing: 'border-box' }}
         />
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#86efac', marginBottom: 6 }}>ANSWER</div>
+        <div style={{ fontSize: 11, color: 'var(--color-green)', marginBottom: 6 }}>ANSWER</div>
         <input
           value={fj.answer}
           onChange={e => onChange({ ...fj, answer: e.target.value })}
           placeholder="What is...?"
-          style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#4ade80', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
+          style={{ width: '100%', background: '#0a1f0f', border: '1px solid #16a34a', borderRadius: 6, color: 'var(--color-green)', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
         />
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>ANSWER IMAGE (optional)</div>
+        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 6 }}>ANSWER IMAGE (optional)</div>
         <input
           value={fj.answerImage || ''}
           onChange={e => onChange({ ...fj, answerImage: e.target.value })}
           placeholder="https://..."
-          style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
+          style={{ width: '100%', background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-muted)', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
         />
       </div>
 
       {fj.category && fj.clue && fj.answer && (type === 'regular' || fj.mediaUrl) && (
-        <div style={{ fontSize: 11, color: '#4ade80' }}>✓ Final Jeopardy complete</div>
+        <div style={{ fontSize: 11, color: 'var(--color-green)' }}>✓ Final Jeopardy complete</div>
       )}
     </div>
   );
