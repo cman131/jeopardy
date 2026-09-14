@@ -9,7 +9,9 @@ function emptyRound() {
   return {
     categories: Array.from({ length: 6 }, () => ({
       name: 'CATEGORY',
-      clues: Array.from({ length: 5 }, () => ({ question: '', answer: '' })),
+      clues: Array.from({ length: 5 }, () => ({
+        question: '', answer: '', type: 'regular', mediaUrl: '', answerImage: '',
+      })),
     })),
   };
 }
@@ -19,7 +21,7 @@ function emptyBoard() {
     name: 'New Board',
     round1: emptyRound(),
     round2: emptyRound(),
-    finalJeopardy: { category: '', clue: '', answer: '' },
+    finalJeopardy: { category: '', clue: '', answer: '', type: 'regular', mediaUrl: '', answerImage: '' },
   };
 }
 
@@ -36,13 +38,18 @@ function validateBoardJson(data) {
 }
 
 function countFilled(board) {
+  const isClueComplete = (cl) => {
+    const type = cl.type || 'regular';
+    return !!(cl.question && cl.answer && (type === 'regular' || cl.mediaUrl));
+  };
   const countRound = (round) =>
-    round.categories.reduce((sum, c) => sum + c.clues.filter(cl => cl.question && cl.answer).length, 0);
+    round.categories.reduce((sum, c) => sum + c.clues.filter(isClueComplete).length, 0);
   const fj = board.finalJeopardy;
+  const fjType = fj.type || 'regular';
   return {
     r1: countRound(board.round1),
     r2: countRound(board.round2),
-    fj: (fj.category && fj.clue && fj.answer) ? 1 : 0,
+    fj: (fj.category && fj.clue && fj.answer && (fjType === 'regular' || fj.mediaUrl)) ? 1 : 0,
   };
 }
 
@@ -270,6 +277,7 @@ export default function EditorPage() {
 }
 
 function FinalJeopardyTab({ fj, onChange }) {
+  const type = fj.type || 'regular';
   return (
     <div style={{ maxWidth: 480 }}>
       <div style={{ marginBottom: 16 }}>
@@ -281,6 +289,42 @@ function FinalJeopardyTab({ fj, onChange }) {
           style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 14, padding: '8px 10px', boxSizing: 'border-box' }}
         />
       </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>CLUE TYPE</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['regular', 'image', 'video'].map(t => (
+            <button
+              key={t}
+              onClick={() => onChange({ ...fj, type: t, mediaUrl: '' })}
+              style={{
+                flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 'bold', cursor: 'pointer',
+                background: type === t ? '#7c3aed' : '#1e293b',
+                color: type === t ? '#fff' : '#475569',
+                border: `1px solid ${type === t ? '#7c3aed' : '#334155'}`,
+                borderRadius: 5,
+              }}
+            >
+              {t === 'regular' ? 'Text' : t === 'image' ? '📷 Image' : '▶ Video'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {type !== 'regular' && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>
+            {type === 'image' ? 'IMAGE URL' : 'YOUTUBE URL'}
+          </div>
+          <input
+            value={fj.mediaUrl || ''}
+            onChange={e => onChange({ ...fj, mediaUrl: e.target.value })}
+            placeholder={type === 'image' ? 'https://...' : 'https://youtube.com/watch?v=...'}
+            style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
+          />
+        </div>
+      )}
+
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, color: '#a5b4fc', marginBottom: 6 }}>CLUE</div>
         <textarea
@@ -291,6 +335,7 @@ function FinalJeopardyTab({ fj, onChange }) {
           style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#fff', fontSize: 13, padding: '8px 10px', resize: 'vertical', boxSizing: 'border-box' }}
         />
       </div>
+
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, color: '#86efac', marginBottom: 6 }}>ANSWER</div>
         <input
@@ -300,7 +345,18 @@ function FinalJeopardyTab({ fj, onChange }) {
           style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#4ade80', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
         />
       </div>
-      {fj.category && fj.clue && fj.answer && (
+
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>ANSWER IMAGE (optional)</div>
+        <input
+          value={fj.answerImage || ''}
+          onChange={e => onChange({ ...fj, answerImage: e.target.value })}
+          placeholder="https://..."
+          style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
+        />
+      </div>
+
+      {fj.category && fj.clue && fj.answer && (type === 'regular' || fj.mediaUrl) && (
         <div style={{ fontSize: 11, color: '#4ade80' }}>✓ Final Jeopardy complete</div>
       )}
     </div>
