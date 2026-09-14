@@ -6,16 +6,27 @@ export default function HomePage() {
   const [name, setName] = useState('');
   const navigate = useNavigate();
 
+  function handleGameCodeChange(e) {
+    const code = e.target.value.toUpperCase();
+    setGameCode(code);
+    if (code.length === 4) {
+      try {
+        const s = localStorage.getItem(`jeopardy_session_${code}`);
+        if (s) setName(JSON.parse(s).name);
+      } catch {}
+    }
+  }
+
   function joinGame(e) {
     e.preventDefault();
-    if (gameCode && name) navigate(`/play/${gameCode.toUpperCase()}`, { state: { name } });
+    if (gameCode && name) navigate(`/play/${gameCode}`, { state: { name } });
   }
 
   return (
     <div style={{ maxWidth: 400, margin: '80px auto', padding: 24 }}>
       <h1 style={{ color: '#fbbf24', textAlign: 'center', marginBottom: 32 }}>JEOPARDY!</h1>
       <form onSubmit={joinGame} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <input value={gameCode} onChange={e => setGameCode(e.target.value.toUpperCase())} placeholder="Game Code" maxLength={4}
+        <input value={gameCode} onChange={handleGameCodeChange} placeholder="Game Code" maxLength={4}
           style={{ padding: 10, borderRadius: 6, border: '1px solid #334155', background: '#1e293b', color: '#fff', fontSize: 18, textAlign: 'center', letterSpacing: 4 }} />
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Your Name"
           style={{ padding: 10, borderRadius: 6, border: '1px solid #334155', background: '#1e293b', color: '#fff', fontSize: 16 }} />
