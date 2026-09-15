@@ -195,25 +195,6 @@ export default function EditorPage() {
             {error}
           </div>
         )}
-        {importWarnings > 0 && (
-          <div style={{
-            background: '#422006', border: '1px solid #92400e', borderRadius: 6,
-            padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#fbbf24',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span>
-              {importWarnings} clue{importWarnings !== 1 ? 's' : ''} imported with Buzzinga media
-              hashes — open those clues and replace the hash with a real URL to use
-              image/audio/video media.
-            </span>
-            <button
-              onClick={() => setImportWarnings(0)}
-              style={{ background: 'none', border: 'none', color: '#fbbf24', cursor: 'pointer', fontSize: 16, lineHeight: 1, marginLeft: 12 }}
-            >
-              ×
-            </button>
-          </div>
-        )}
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <input
@@ -297,7 +278,7 @@ function FinalJeopardyTab({ fj, onChange }) {
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>CLUE TYPE</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          {['regular', 'image', 'video'].map(t => (
+          {['regular', 'image', 'video', 'audio'].map(t => (
             <button
               key={t}
               onClick={() => onChange({ ...fj, type: t, mediaUrl: '' })}
@@ -309,7 +290,7 @@ function FinalJeopardyTab({ fj, onChange }) {
                 borderRadius: 5,
               }}
             >
-              {t === 'regular' ? 'Text' : t === 'image' ? '📷 Image' : '▶ Video'}
+              {t === 'regular' ? 'Text' : t === 'image' ? '📷 Image' : t === 'video' ? '▶ Video' : '🔊 Audio'}
             </button>
           ))}
         </div>
@@ -318,12 +299,12 @@ function FinalJeopardyTab({ fj, onChange }) {
       {type !== 'regular' && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>
-            {type === 'image' ? 'IMAGE URL' : 'YOUTUBE URL'}
+            {type === 'image' ? 'IMAGE URL' : type === 'video' ? 'YOUTUBE URL' : 'AUDIO URL'}
           </div>
           <input
             value={fj.mediaUrl || ''}
             onChange={e => onChange({ ...fj, mediaUrl: e.target.value })}
-            placeholder={type === 'image' ? 'https://...' : 'https://youtube.com/watch?v=...'}
+            placeholder={type === 'video' ? 'https://youtube.com/watch?v=...' : 'https://...'}
             style={{ width: '100%', background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-white)', fontSize: 13, padding: '8px 10px', boxSizing: 'border-box' }}
           />
         </div>
