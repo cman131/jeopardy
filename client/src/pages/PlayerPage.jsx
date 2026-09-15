@@ -41,6 +41,8 @@ export default function PlayerPage() {
           currentClue: gs.currentClue,
           fjCategory: gs.finalJeopardyCategory,
           fjClue: gs.fjClue,
+          fjType: gs.fjType || 'regular',
+          fjMediaUrl: gs.fjMediaUrl || null,
           wagersSubmitted: gs.wagersSubmitted,
           answersSubmitted: gs.answersSubmitted,
           myWagerSubmitted: (gs.wagersSubmitted || []).includes(myName),
@@ -166,7 +168,7 @@ export default function PlayerPage() {
           <div style={{ color: 'var(--color-amber)', fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>FINAL JEOPARDY</div>
           <div style={{ color: 'var(--color-white)', fontSize: 14, marginBottom: 16 }}>{game.fjCategory}</div>
           {game.myWagerSubmitted ? (
-            <div style={{ color: 'var(--color-green)', fontSize: 14 }}>Wager locked in! ${wagerInput}</div>
+            <div style={{ color: 'var(--color-green)', fontSize: 14 }}>Wager locked in! ${parseInt(wagerInput, 10)}</div>
           ) : (
             <div>
               <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 8 }}>
