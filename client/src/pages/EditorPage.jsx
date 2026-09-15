@@ -31,7 +31,7 @@ function emptyBoard() {
 function countFilled(board) {
   const isClueComplete = (cl) => {
     const type = cl.type || 'regular';
-    return !!(cl.question && cl.answer && (type === 'regular' || cl.mediaUrl));
+    return !!(cl.question && cl.answer && (type === 'regular' || cl.mediaUrl || cl.mediaHash));
   };
   const countRound = (round) =>
     round.categories.reduce((sum, c) => sum + c.clues.filter(isClueComplete).length, 0);
@@ -40,7 +40,7 @@ function countFilled(board) {
   return {
     r1: countRound(board.round1),
     r2: countRound(board.round2),
-    fj: (fj.category && fj.clue && fj.answer && (fjType === 'regular' || fj.mediaUrl)) ? 1 : 0,
+    fj: (fj.category && fj.clue && fj.answer && (fjType === 'regular' || fj.mediaUrl || fj.mediaHash)) ? 1 : 0,
   };
 }
 
@@ -137,6 +137,7 @@ export default function EditorPage() {
     setImportWarnings(warnings);
     setShowImportModal(false);
     setActiveTab('round1');
+    navigate('/editor', { replace: true });
   }
 
   function exportJson() {
@@ -181,7 +182,7 @@ export default function EditorPage() {
           </button>
         </div>
         <div style={{ padding: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <button onClick={() => setShowImportModal(true)} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬆ Import Board</button>
+          <button onClick={() => { if (confirmDiscard()) setShowImportModal(true); }} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬆ Import Board</button>
           <button onClick={exportJson} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬇ Export Board (JSON)</button>
         </div>
       </div>
