@@ -463,6 +463,50 @@ describe('GameState — getPublicState / getHostState', () => {
   });
 });
 
+describe('GameState — getHostState during final-judging', () => {
+  function makeFjJudgingGs() {
+    const board = makeBoard();
+    const gs = new GameState(board);
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.start();
+    for (let ci = 0; ci < 6; ci++)
+      for (let qi = 0; qi < 5; qi++) { gs.selectClue(ci, qi); gs.skipClue(); }
+    gs.startRound2();
+    for (let ci = 0; ci < 6; ci++)
+      for (let qi = 0; qi < 5; qi++) { gs.selectClue(ci, qi); gs.skipClue(); }
+    gs.submitWager('Alice', 500);
+    gs.submitWager('Bob', 300);
+    gs.submitAnswer('Alice', 'What is X?');
+    gs.submitAnswer('Bob', 'What is Y?');
+    // Now in final-judging
+    return gs;
+  }
+
+  test('getHostState includes finalJudgments when phase is final-judging', () => {
+    const gs = makeFjJudgingGs();
+    gs.judgeFinal('Alice', true);
+    const host = gs.getHostState();
+    expect(host.finalJudgments).toBeDefined();
+    expect(host.finalJudgments['Alice']).toBe(true);
+  });
+
+  test('getHostState finalJudgments is empty object before any judgments', () => {
+    const gs = makeFjJudgingGs();
+    const host = gs.getHostState();
+    expect(host.finalJudgments).toEqual({});
+  });
+
+  test('getHostState does not include finalJudgments outside final-judging phase', () => {
+    const gs = new GameState(makeBoard());
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.start();
+    const host = gs.getHostState();
+    expect(host.finalJudgments).toBeUndefined();
+  });
+});
+
 describe('GameState — media clue fields', () => {
   function makeBoardWithMedia() {
     const board = makeBoard();

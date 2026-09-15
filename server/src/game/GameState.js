@@ -101,7 +101,7 @@ class GameState {
       this._closeClue();
     } else {
       this.buzzedBy = null;
-      this.buzzerState = 'open';
+      this.buzzerState = 'locked';
       this.phase = 'clue';
       // Auto-skip if all players have buzzed incorrectly
       if (this.buzzedPlayers.length >= this.players.length) {
@@ -253,6 +253,7 @@ class GameState {
     if (this.phase === 'final-judging') {
       state.finalAnswers = Object.fromEntries(this.finalAnswers);
       state.finalWagers = Object.fromEntries(this.finalWagers);
+      state.finalJudgments = Object.fromEntries(this.finalJudgments);
     }
     return state;
   }
