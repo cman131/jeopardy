@@ -37,7 +37,7 @@ export default function BoardEditorGrid({ categories, values, onChange }) {
               const type = clue.type || 'regular';
               const complete = type === 'regular'
                 ? !!(clue.question && clue.answer)
-                : !!(clue.answer && clue.mediaUrl);
+                : !!(clue.answer && (clue.mediaUrl || clue.mediaHash));
               const isActive = activeCell?.ci === ci && activeCell?.qi === qi;
               return (
                 <div
