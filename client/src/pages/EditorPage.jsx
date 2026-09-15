@@ -312,7 +312,9 @@ function FinalJeopardyTab({ fj, onChange }) {
       )}
 
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>CLUE</div>
+        <div style={{ fontSize: 11, color: 'var(--color-label)', marginBottom: 6 }}>
+          CLUE{type !== 'regular' ? <span style={{ color: 'var(--color-muted)', fontWeight: 'normal' }}> (optional)</span> : ''}
+        </div>
         <textarea
           value={fj.clue}
           onChange={e => onChange({ ...fj, clue: e.target.value })}
