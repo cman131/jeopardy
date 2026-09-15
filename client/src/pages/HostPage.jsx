@@ -209,12 +209,14 @@ function HostClue({ game, board, onPlayVideo }) {
       )}
       {phase === 'clue' && !buzzedBy && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {clueData?.type === 'video' && (
+          {['video', 'audio'].includes(clueData?.type) && (
             <button
               onClick={onPlayVideo}
               disabled={game.videoPlayed}
               style={{ flex: '1 1 100%', padding: 12, background: game.videoPlayed ? 'var(--bg-surface)' : '#7c3aed', color: game.videoPlayed ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 'bold', cursor: game.videoPlayed ? 'not-allowed' : 'pointer' }}>
-              {game.videoPlayed ? '✓ Video Playing on Display' : '▶ Play Video on Display'}
+              {clueData.type === 'audio'
+                ? game.videoPlayed ? '✓ Audio Playing on Display' : '🔊 Play Audio on Display'
+                : game.videoPlayed ? '✓ Video Playing on Display' : '▶ Play Video on Display'}
             </button>
           )}
           {buzzerState !== 'open' && (
@@ -331,12 +333,14 @@ function HostFinalClue({ game, onPlayVideo }) {
         <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--color-white)' }}>{game.fjClue}</div>
         <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} compact />
       </div>
-      {game.fjType === 'video' && (
+      {['video', 'audio'].includes(game.fjType) && (
         <button
           onClick={onPlayVideo}
           disabled={game.videoPlayed}
           style={{ width: '100%', padding: 12, background: game.videoPlayed ? 'var(--bg-surface)' : '#7c3aed', color: game.videoPlayed ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 'bold', cursor: game.videoPlayed ? 'not-allowed' : 'pointer', marginBottom: 8 }}>
-          {game.videoPlayed ? '✓ Video Playing on Display' : '▶ Play Video on Display'}
+          {game.fjType === 'audio'
+            ? game.videoPlayed ? '✓ Audio Playing on Display' : '🔊 Play Audio on Display'
+            : game.videoPlayed ? '✓ Video Playing on Display' : '▶ Play Video on Display'}
         </button>
       )}
       <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 12 }}>Answers: {submitted.length}/{total}</div>
