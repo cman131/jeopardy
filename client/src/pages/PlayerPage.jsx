@@ -66,13 +66,12 @@ export default function PlayerPage() {
     socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
     socket.on('game:started', ({ players, currentPicker, currentRound }) =>
       setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
-    socket.on('game:clueRevealed', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked' })));
+    socket.on('game:clueRevealed', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked', myBuzzedOut: false })));
+    socket.on('game:wrongAnswer', ({ players, buzzedPlayers }) => setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'locked', players, myBuzzedOut: (buzzedPlayers || []).includes(myName) })));
     socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
     socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName, buzzerState: 'claimed' })));
     socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
-      setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
-    socket.on('game:clueSkipped', ({ revealedClues, currentPicker }) =>
-      setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null, buzzerState: 'locked' })));
+      setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, buzzerState: 'locked', myBuzzedOut: false })));
     socket.on('game:finished', ({ players }) => {
       localStorage.removeItem(`jeopardy_session_${gameCode}`);
       setGame(g => ({ ...g, phase: 'finished', players }));
@@ -140,7 +139,7 @@ export default function PlayerPage() {
             </div>
           )}
           <BuzzerButton
-            locked={game.buzzerState === 'locked' || (game.buzzerState === 'claimed' && game.buzzedBy !== myName)}
+            locked={game.buzzerState === 'locked' || game.myBuzzedOut || (game.buzzerState === 'claimed' && game.buzzedBy !== myName)}
             onBuzz={() => socket.emit('player:buzz')}
             buzzedBy={game.buzzedBy}
             myName={myName}

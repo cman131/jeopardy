@@ -21,15 +21,13 @@ export default function DisplayPage() {
       setGame({ phase: 'board', board, players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null }));
     socket.on('game:clueRevealed', clue =>
       setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked', answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null, videoPlaying: false })));
-    socket.on('game:wrongAnswer', ({ players, buzzedPlayers }) =>
-      setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'locked', players, buzzedPlayers: buzzedPlayers || [] })));
+    socket.on('game:wrongAnswer', ({ players }) =>
+      setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'locked', players })));
     socket.on('game:videoPlay', () => setGame(g => ({ ...g, videoPlaying: true })));
     socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
     socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName, buzzerState: 'claimed' })));
     socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
       setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null })));
-    socket.on('game:clueSkipped', ({ revealedClues, currentPicker }) =>
-      setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null, answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null })));
     socket.on('game:answerRevealed', ({ answer, answerImage }) =>
       setGame(g => ({ ...g, answerRevealed: true, revealedAnswer: answer, revealedAnswerImage: answerImage })));
     socket.on('game:finished', ({ players }) => setGame(g => ({ ...g, phase: 'finished', players })));
