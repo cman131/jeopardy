@@ -57,7 +57,7 @@ export default function BoardEditorGrid({ categories, values, onChange }) {
                   </div>
                   {complete ? (
                     <div style={{ fontSize: 9, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
-                      {type === 'image' ? '📷 ' : type === 'video' ? '▶ ' : ''}{clue.question}
+                      {type === 'image' ? '📷 ' : type === 'video' ? '▶ ' : type === 'audio' ? '🔊 ' : ''}{clue.question}
                     </div>
                   ) : (
                     <div style={{ fontSize: 9, color: '#374151', fontStyle: 'italic', marginTop: 2 }}>Click to add...</div>
@@ -102,7 +102,7 @@ function ClueModal({ ci, qi, value, categoryName, clue, onUpdate, onClose }) {
 
         <div style={{ fontSize: 10, color: 'var(--color-label)', letterSpacing: 1, marginBottom: 6 }}>CLUE TYPE</div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-          {['regular', 'image', 'video'].map(t => (
+          {['regular', 'image', 'video', 'audio'].map(t => (
             <button
               key={t}
               onClick={() => onUpdate('type', t)}
@@ -114,20 +114,20 @@ function ClueModal({ ci, qi, value, categoryName, clue, onUpdate, onClose }) {
                 borderRadius: 5,
               }}
             >
-              {t === 'regular' ? 'Text' : t === 'image' ? '📷 Image' : '▶ Video'}
+              {t === 'regular' ? 'Text' : t === 'image' ? '📷 Image' : t === 'video' ? '▶ Video' : '🔊 Audio'}
             </button>
           ))}
         </div>
 
-        {(type === 'image' || type === 'video') && (
+        {(type === 'image' || type === 'video' || type === 'audio') && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 10, color: 'var(--color-label)', letterSpacing: 1, marginBottom: 6 }}>
-              {type === 'image' ? 'IMAGE URL' : 'YOUTUBE URL'}
+              {type === 'image' ? 'IMAGE URL' : type === 'video' ? 'YOUTUBE URL' : 'AUDIO URL'}
             </div>
             <input
               value={clue.mediaUrl || ''}
               onChange={e => onUpdate('mediaUrl', e.target.value)}
-              placeholder={type === 'image' ? 'https://...' : 'https://youtube.com/watch?v=...'}
+              placeholder={type === 'video' ? 'https://youtube.com/watch?v=...' : 'https://...'}
               style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--color-white)', fontSize: 13, padding: '10px 12px', boxSizing: 'border-box' }}
             />
           </div>
