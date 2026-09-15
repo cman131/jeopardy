@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import BoardEditorGrid from '../components/BoardEditorGrid';
 import NavBreadcrumb from '../components/NavBreadcrumb';
+import ImportBoardModal from '../components/ImportBoardModal.jsx';
+import { validateBoardJson } from '../utils/boardImportUtils.js';
 
 const R1_VALUES = [200, 400, 600, 800, 1000];
 const R2_VALUES = [400, 800, 1200, 1600, 2000];
@@ -11,7 +13,7 @@ function emptyRound() {
     categories: Array.from({ length: 6 }, () => ({
       name: 'CATEGORY',
       clues: Array.from({ length: 5 }, () => ({
-        question: '', answer: '', type: 'regular', mediaUrl: '', answerImage: '',
+        question: '', answer: '', type: 'regular', mediaUrl: '', answerImage: '', mediaHash: '',
       })),
     })),
   };
@@ -22,21 +24,10 @@ function emptyBoard() {
     name: 'New Board',
     round1: emptyRound(),
     round2: emptyRound(),
-    finalJeopardy: { category: '', clue: '', answer: '', type: 'regular', mediaUrl: '', answerImage: '' },
+    finalJeopardy: { category: '', clue: '', answer: '', type: 'regular', mediaUrl: '', answerImage: '', mediaHash: '' },
   };
 }
 
-function validateBoardJson(data) {
-  if (!data || typeof data !== 'object') return false;
-  const validRound = (r) =>
-    r && Array.isArray(r.categories) && r.categories.length === 6 &&
-    r.categories.every(c => Array.isArray(c.clues) && c.clues.length === 5 &&
-      c.clues.every(cl => 'question' in cl && 'answer' in cl));
-  const validFj = (fj) => fj && 'category' in fj && 'clue' in fj && 'answer' in fj;
-  // Reject old single-round format
-  if ('categories' in data) return false;
-  return validRound(data.round1) && validRound(data.round2) && validFj(data.finalJeopardy);
-}
 
 function countFilled(board) {
   const isClueComplete = (cl) => {
@@ -64,6 +55,8 @@ export default function EditorPage() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importWarnings, setImportWarnings] = useState(0);
 
   useEffect(() => {
     fetch('/api/boards')
@@ -138,29 +131,13 @@ export default function EditorPage() {
     navigate('/editor');
   }
 
-  function importJson() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = e => {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = ev => {
-        try {
-          const data = JSON.parse(ev.target.result);
-          if (!validateBoardJson(data)) {
-            alert('Invalid board JSON. Must use multi-round format with round1, round2, and finalJeopardy sections. Old single-round boards are not supported.');
-            return;
-          }
-          setBoard(data);
-          setActiveBoardId(null);
-          setActiveTab('round1');
-          setDirty(true);
-        } catch { alert('Invalid JSON file'); }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
+  function handleImport(board, warnings) {
+    setBoard(board);
+    setActiveBoardId(null);
+    setDirty(true);
+    setImportWarnings(warnings);
+    setShowImportModal(false);
+    setActiveTab('round1');
   }
 
   function exportJson() {
@@ -205,8 +182,8 @@ export default function EditorPage() {
           </button>
         </div>
         <div style={{ padding: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <button onClick={importJson} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬆ Import JSON</button>
-          <button onClick={exportJson} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬇ Export JSON</button>
+          <button onClick={() => setShowImportModal(true)} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬆ Import Board</button>
+          <button onClick={exportJson} style={{ background: 'var(--bg-panel)', border: 'none', color: 'var(--color-muted)', borderRadius: 5, padding: 7, fontSize: 10, cursor: 'pointer', textAlign: 'left' }}>⬇ Export Board (JSON)</button>
         </div>
       </div>
 
@@ -216,6 +193,25 @@ export default function EditorPage() {
         {error && (
           <div style={{ background: '#450a0a', border: '1px solid #b91c1c', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: 'var(--color-red)' }}>
             {error}
+          </div>
+        )}
+        {importWarnings > 0 && (
+          <div style={{
+            background: '#422006', border: '1px solid #92400e', borderRadius: 6,
+            padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#fbbf24',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span>
+              {importWarnings} clue{importWarnings !== 1 ? 's' : ''} imported with Buzzinga media
+              hashes — open those clues and replace the hash with a real URL to use
+              image/audio/video media.
+            </span>
+            <button
+              onClick={() => setImportWarnings(0)}
+              style={{ background: 'none', border: 'none', color: '#fbbf24', cursor: 'pointer', fontSize: 16, lineHeight: 1, marginLeft: 12 }}
+            >
+              ×
+            </button>
           </div>
         )}
         {/* Header row */}
@@ -274,6 +270,12 @@ export default function EditorPage() {
           )}
         </div>
       </div>
+      {showImportModal && (
+        <ImportBoardModal
+          onImport={handleImport}
+          onClose={() => setShowImportModal(false)}
+        />
+      )}
     </div>
   );
 }
