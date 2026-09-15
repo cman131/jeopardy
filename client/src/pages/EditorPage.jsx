@@ -31,7 +31,8 @@ function emptyBoard() {
 function countFilled(board) {
   const isClueComplete = (cl) => {
     const type = cl.type || 'regular';
-    return !!(cl.question && cl.answer && (type === 'regular' || cl.mediaUrl || cl.mediaHash));
+    if (type === 'regular') return !!(cl.question && cl.answer);
+    return !!(cl.answer && (cl.mediaUrl || cl.mediaHash));
   };
   const countRound = (round) =>
     round.categories.reduce((sum, c) => sum + c.clues.filter(isClueComplete).length, 0);
@@ -40,7 +41,7 @@ function countFilled(board) {
   return {
     r1: countRound(board.round1),
     r2: countRound(board.round2),
-    fj: (fj.category && fj.clue && fj.answer && (fjType === 'regular' || fj.mediaUrl || fj.mediaHash)) ? 1 : 0,
+    fj: (fj.category && fj.answer && (fjType === 'regular' ? fj.clue : (fj.mediaUrl || fj.mediaHash))) ? 1 : 0,
   };
 }
 
@@ -341,7 +342,7 @@ function FinalJeopardyTab({ fj, onChange }) {
         />
       </div>
 
-      {fj.category && fj.clue && fj.answer && (type === 'regular' || fj.mediaUrl) && (
+      {fj.category && fj.answer && (type === 'regular' ? fj.clue : (fj.mediaUrl || fj.mediaHash)) && (
         <div style={{ fontSize: 11, color: 'var(--color-green)' }}>✓ Final Jeopardy complete</div>
       )}
     </div>
