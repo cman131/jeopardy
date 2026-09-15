@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import BoardEditorGrid from '../components/BoardEditorGrid';
 import NavBreadcrumb from '../components/NavBreadcrumb';
 import ImportBoardModal from '../components/ImportBoardModal.jsx';
-import { validateBoardJson } from '../utils/boardImportUtils.js';
 
 const R1_VALUES = [200, 400, 600, 800, 1000];
 const R2_VALUES = [400, 800, 1200, 1600, 2000];
