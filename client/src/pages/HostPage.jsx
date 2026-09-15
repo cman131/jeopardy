@@ -27,7 +27,10 @@ export default function HostPage() {
 
       socket.connect();
       socket.emit('host:join', { gameCode });
-      socket.on('host:joined', state => setGame(state));
+      socket.on('host:joined', state => {
+        setGame(state);
+        setJudgments(state.finalJudgments || {});
+      });
       socket.on('host:state', state => setGame(state));
       socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
       socket.on('game:started', ({ players, currentPicker, currentRound }) =>
