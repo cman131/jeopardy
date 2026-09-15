@@ -51,7 +51,7 @@ export default function HostPage() {
       socket.on('game:wagerSubmitted', ({ playerName }) =>
         setGame(g => ({ ...g, wagersSubmitted: [...(g.wagersSubmitted || []), playerName] })));
       socket.on('game:finalClue', ({ category, clue, type, mediaUrl }) =>
-        setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, fjType: type || 'regular', fjMediaUrl: mediaUrl || null, answersSubmitted: [] })));
+        setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, fjType: type || 'regular', fjMediaUrl: mediaUrl || null, answersSubmitted: [], videoPlayed: false })));
       socket.on('game:answerSubmitted', ({ playerName }) =>
         setGame(g => ({ ...g, answersSubmitted: [...(g.answersSubmitted || []), playerName] })));
       socket.on('game:finalJudgingReady', ({ answers, fjAnswerImage }) =>
@@ -101,7 +101,13 @@ export default function HostPage() {
       {phase === 'finished' && <HostFinished players={game.players} />}
       {phase === 'between-rounds' && <HostBetweenRounds game={game} />}
       {phase === 'final-wager' && <HostFinalWager game={game} />}
-      {phase === 'final-clue' && <HostFinalClue game={game} />}
+      {phase === 'final-clue' && <HostFinalClue
+        game={game}
+        onPlayVideo={() => {
+          socket.emit('host:playVideo');
+          setGame(g => ({ ...g, videoPlayed: true }));
+        }}
+      />}
       {phase === 'final-judging' && (
         <HostFinalJudging
           game={game}
@@ -312,7 +318,7 @@ function HostFinalWager({ game }) {
   );
 }
 
-function HostFinalClue({ game }) {
+function HostFinalClue({ game, onPlayVideo }) {
   const submitted = game.answersSubmitted || [];
   const total = (game.players || []).length;
   return (
@@ -322,6 +328,14 @@ function HostFinalClue({ game }) {
         <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--color-white)' }}>{game.fjClue}</div>
         <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} compact />
       </div>
+      {game.fjType === 'video' && (
+        <button
+          onClick={onPlayVideo}
+          disabled={game.videoPlayed}
+          style={{ width: '100%', padding: 12, background: game.videoPlayed ? 'var(--bg-surface)' : '#7c3aed', color: game.videoPlayed ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 'bold', cursor: game.videoPlayed ? 'not-allowed' : 'pointer', marginBottom: 8 }}>
+          {game.videoPlayed ? '✓ Video Playing on Display' : '▶ Play Video on Display'}
+        </button>
+      )}
       <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 12 }}>Answers: {submitted.length}/{total}</div>
       {(game.players || []).map(p => (
         <div key={p.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-panel)', borderRadius: 20, padding: '6px 14px', margin: 4 }}>

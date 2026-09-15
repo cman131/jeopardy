@@ -20,7 +20,10 @@ export default function DisplayPage() {
     socket.on('game:started', ({ board, players, currentPicker, currentRound }) =>
       setGame({ phase: 'board', board, players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null }));
     socket.on('game:clueRevealed', clue =>
-      setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked', answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null })));
+      setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked', answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null, videoPlaying: false })));
+    socket.on('game:wrongAnswer', ({ players, buzzedPlayers }) =>
+      setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'locked', players, buzzedPlayers: buzzedPlayers || [] })));
+    socket.on('game:videoPlay', () => setGame(g => ({ ...g, videoPlaying: true })));
     socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
     socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName, buzzerState: 'claimed' })));
     socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
@@ -43,7 +46,7 @@ export default function DisplayPage() {
     socket.on('game:wagerSubmitted', ({ playerName }) =>
       setGame(g => ({ ...g, wagersSubmitted: [...(g.wagersSubmitted || []), playerName] })));
     socket.on('game:finalClue', ({ category, clue, type, mediaUrl }) =>
-      setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, fjType: type || 'regular', fjMediaUrl: mediaUrl || null, answersSubmitted: [] })));
+      setGame(g => ({ ...g, phase: 'final-clue', fjCategory: category, fjClue: clue, fjType: type || 'regular', fjMediaUrl: mediaUrl || null, answersSubmitted: [], videoPlaying: false })));
     socket.on('game:answerSubmitted', ({ playerName }) =>
       setGame(g => ({ ...g, answersSubmitted: [...(g.answersSubmitted || []), playerName] })));
     socket.on('game:finalJudging', () =>
@@ -126,7 +129,7 @@ function LobbyDisplay({ game, gameCode }) {
 }
 
 function ClueDisplay({ game }) {
-  const { currentClue, phase, buzzedBy, buzzerState, answerRevealed, revealedAnswer, revealedAnswerImage } = game;
+  const { currentClue, phase, buzzedBy, buzzerState, answerRevealed, revealedAnswer, revealedAnswerImage, videoPlaying } = game;
   const categoryName = game.board?.categoryNames?.[currentClue?.categoryIndex] ?? '';
   const isBuzzedIn = phase === 'judging' && buzzedBy;
 
@@ -179,7 +182,7 @@ function ClueDisplay({ game }) {
               <div style={{ fontSize: 32, fontWeight: 'bold', lineHeight: 1.5, maxWidth: 720, marginBottom: 20, color: 'var(--color-white)' }}>
                 {currentClue.question}
               </div>
-              <ClueMedia type={currentClue.type} mediaUrl={currentClue.mediaUrl} />
+              <ClueMedia type={currentClue.type} mediaUrl={currentClue.mediaUrl} videoReady={currentClue.type === 'video' ? videoPlaying : true} />
               {answerRevealed && (
                 <div style={{ marginTop: 24, padding: '16px 24px', background: 'var(--bg-surface)', borderRadius: 10, display: 'inline-block' }}>
                   <div style={{ fontSize: 22, color: 'var(--color-green)', fontWeight: 'bold', marginBottom: revealedAnswerImage ? 12 : 0 }}>
@@ -196,9 +199,11 @@ function ClueDisplay({ game }) {
             </>
           )}
           {phase === 'clue' && (
-            <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 20, padding: '6px 16px' }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-red)' }} />
-              <span style={{ fontSize: 13, color: 'var(--color-red)', fontWeight: 'bold', letterSpacing: 1 }}>BUZZERS LOCKED</span>
+            <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--bg-panel)', border: `1px solid ${buzzerState === 'open' ? 'var(--color-green)' : 'var(--border-subtle)'}`, borderRadius: 20, padding: '6px 16px' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: buzzerState === 'open' ? 'var(--color-green)' : 'var(--color-red)' }} />
+              <span style={{ fontSize: 13, color: buzzerState === 'open' ? 'var(--color-green)' : 'var(--color-red)', fontWeight: 'bold', letterSpacing: 1 }}>
+                {buzzerState === 'open' ? 'BUZZERS OPEN' : 'BUZZERS LOCKED'}
+              </span>
             </div>
           )}
         </>
@@ -270,7 +275,7 @@ function DisplayFinalClue({ game }) {
       <div style={{ fontSize: 22, color: 'var(--color-label)', marginBottom: 16, textAlign: 'center', letterSpacing: 2 }}>{game.fjCategory}</div>
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: 32, marginBottom: 32, textAlign: 'center' }}>
         <div style={{ fontSize: 24, lineHeight: 1.6, color: 'var(--color-white)' }}>{game.fjClue}</div>
-        <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} />
+        <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} videoReady={game.fjType === 'video' ? game.videoPlaying : true} />
       </div>
       <div style={{ textAlign: 'center', color: 'var(--color-muted)', marginBottom: 20, fontSize: 16 }}>Write your answers!</div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
