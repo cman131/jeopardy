@@ -305,23 +305,28 @@ function DisplayFinalReveal({ game }) {
   return (
     <div style={{ padding: 40, maxWidth: 700, margin: '0 auto' }}>
       <div style={{ fontSize: 32, fontWeight: 'bold', color: 'var(--color-amber)', textAlign: 'center', marginBottom: 32, letterSpacing: 4 }}>FINAL JEOPARDY</div>
-      {revealed.map(({ playerName, wager, answer, correct }) => (
-        <RevealCard key={playerName} playerName={playerName} wager={wager} answer={answer} correct={correct} />
-      ))}
+      {revealed.map(({ playerName, wager, answer, correct }) => {
+        const player = (game.players || []).find(p => p.name === playerName);
+        return (
+          <RevealCard key={playerName} playerName={playerName} wager={wager} answer={answer} correct={correct} finalScore={player?.score} />
+        );
+      })}
     </div>
   );
 }
 
-function RevealCard({ playerName, wager, answer, correct }) {
+function RevealCard({ playerName, wager, answer, correct, finalScore }) {
   const [showWager, setShowWager] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [showTotal, setShowTotal] = useState(false);
 
   useEffect(() => {
     const t1 = setTimeout(() => setShowWager(true), 400);
     const t2 = setTimeout(() => setShowAnswer(true), 1400);
     const t3 = setTimeout(() => setShowResult(true), 2400);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t4 = setTimeout(() => setShowTotal(true), 3200);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
   return (
@@ -332,6 +337,11 @@ function RevealCard({ playerName, wager, answer, correct }) {
       {showResult && (
         <div style={{ color: correct ? 'var(--color-green)' : 'var(--color-red)', fontWeight: 'bold', fontSize: 20 }}>
           {correct ? `+$${wager}` : `-$${wager}`}
+        </div>
+      )}
+      {showTotal && finalScore !== undefined && (
+        <div style={{ color: 'var(--color-amber)', fontSize: 16, marginTop: 4 }}>
+          Total: {finalScore < 0 ? `-$${Math.abs(finalScore)}` : `$${finalScore}`}
         </div>
       )}
     </div>
