@@ -289,7 +289,7 @@ describe('full game flow', () => {
     alice.emit('player:buzz');
     await waitFor(host, 'game:buzzClaimed');
     host.emit('host:judge', { result: 'incorrect' });
-    await waitFor(alice, 'game:scored'); // Alice: -200
+    await waitFor(alice, 'game:wrongAnswer'); // Alice: -200, buzzers re-open
 
     // Bob can now buzz
     bob.emit('player:buzz');
