@@ -39,4 +39,8 @@ function makeTestBoard(overrides = {}) {
   };
 }
 
-module.exports = { startDb, stopDb, clearDb, makeTestBoard };
+function makeMediaClue(type, mediaUrl, answer, overrides = {}) {
+  return { question: '', answer, type, mediaUrl, answerImage: '', mediaHash: '', ...overrides };
+}
+
+module.exports = { startDb, stopDb, clearDb, makeTestBoard, makeMediaClue };

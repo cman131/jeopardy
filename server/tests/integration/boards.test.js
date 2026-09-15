@@ -1,7 +1,7 @@
 const request = require('supertest');
 const express = require('express');
 const boardsRouter = require('../../src/routes/boards');
-const { startDb, stopDb, clearDb, makeTestBoard } = require('../helpers');
+const { startDb, stopDb, clearDb, makeTestBoard, makeMediaClue } = require('../helpers');
 
 let app;
 beforeAll(async () => {
@@ -79,5 +79,35 @@ describe('DELETE /api/boards/:id', () => {
   test('returns 404 for unknown id', async () => {
     const res = await request(app).delete('/api/boards/000000000000000000000000');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /api/boards — media clues without text', () => {
+  function boardWithMediaClue(type) {
+    const board = makeTestBoard();
+    board.round1.categories[0].clues[0] = makeMediaClue(type, 'https://example.com/media', 'The answer');
+    return board;
+  }
+
+  test('accepts image clue with empty question', async () => {
+    const res = await request(app).post('/api/boards').send(boardWithMediaClue('image'));
+    expect(res.status).toBe(201);
+  });
+
+  test('accepts audio clue with empty question', async () => {
+    const res = await request(app).post('/api/boards').send(boardWithMediaClue('audio'));
+    expect(res.status).toBe(201);
+  });
+
+  test('accepts video clue with empty question', async () => {
+    const res = await request(app).post('/api/boards').send(boardWithMediaClue('video'));
+    expect(res.status).toBe(201);
+  });
+
+  test('accepts final jeopardy image clue with empty clue text', async () => {
+    const board = makeTestBoard();
+    board.finalJeopardy = { category: 'FJ-CAT', clue: '', answer: 'FJ-ANSWER', type: 'image', mediaUrl: 'https://example.com/img.jpg' };
+    const res = await request(app).post('/api/boards').send(board);
+    expect(res.status).toBe(201);
   });
 });

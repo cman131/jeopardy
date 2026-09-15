@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const clueSchema = new mongoose.Schema({
-  question: { type: String, required: true },
+  question: { type: String },
   answer: { type: String, required: true },
   type: { type: String, enum: ['regular', 'image', 'video', 'audio'], default: 'regular' },
   mediaUrl: { type: String },
@@ -26,7 +26,7 @@ const roundSchema = new mongoose.Schema({
 
 const finalJeopardySchema = new mongoose.Schema({
   category: { type: String, required: true },
-  clue: { type: String, required: true },
+  clue: { type: String },
   answer: { type: String, required: true },
   type: { type: String, enum: ['regular', 'image', 'video', 'audio'], default: 'regular' },
   mediaUrl: { type: String },
