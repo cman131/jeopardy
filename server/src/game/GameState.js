@@ -101,7 +101,7 @@ class GameState {
       this._closeClue();
     } else {
       this.buzzedBy = null;
-      this.buzzerState = 'locked';
+      this.buzzerState = 'open';
       this.phase = 'clue';
       // Auto-skip if all players have buzzed incorrectly
       if (this.buzzedPlayers.length >= this.players.length) {
