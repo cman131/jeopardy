@@ -55,6 +55,8 @@ function registerGameHandlers(io, socket) {
       ...pub,
       name,
       fjClue: fjPhases.includes(pub.phase) ? (entry.state.board.finalJeopardy?.clue || null) : null,
+      fjType: fjPhases.includes(pub.phase) ? (entry.state.board.finalJeopardy?.type || 'regular') : null,
+      fjMediaUrl: fjPhases.includes(pub.phase) ? (entry.state.board.finalJeopardy?.mediaUrl || null) : null,
     });
   });
 
@@ -136,7 +138,15 @@ function registerGameHandlers(io, socket) {
     await Game.updateOne({ gameCode }, { $set: { revealedClues: pub.revealedClues } });
 
     const phase = entry.state.phase;
-    if (phase === 'between-rounds') {
+    if (phase === 'clue') {
+      // Wrong answer — clue continues; go back to awaiting buzzers
+      const state = entry.state.getPublicState();
+      io.to(gameCode).emit('game:wrongAnswer', {
+        players: state.players,
+        judgedPlayer,
+        buzzedPlayers: entry.state.buzzedPlayers,
+      });
+    } else if (phase === 'between-rounds') {
       io.to(gameCode).emit('game:betweenRounds', { players: entry.state.getPublicState().players });
     } else if (phase === 'final-wager') {
       io.to(gameCode).emit('game:finalWager', { category: entry.state.board.finalJeopardy.category });
@@ -340,6 +350,13 @@ function registerGameHandlers(io, socket) {
       answer: clue.answer,
       answerImage: clue.answerImage || null,
     });
+  });
+
+  socket.on('host:playVideo', () => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    const gameCode = _gameCodeFor(socket);
+    io.to(gameCode).emit('game:videoPlay');
   });
 
   socket.on('disconnect', () => {

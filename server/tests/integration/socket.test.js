@@ -153,6 +153,61 @@ describe('player:rejoin', () => {
   });
 });
 
+describe('player:rejoin FJ fields', () => {
+  test('includes fjType and fjMediaUrl in payload when rejoining during final-clue', async () => {
+    const board = makeTestBoard({
+      finalJeopardy: {
+        category: 'FJ-CAT', clue: 'FJ-CLUE', answer: 'FJ-ANSWER',
+        type: 'image', mediaUrl: 'https://example.com/fj.jpg',
+      },
+    });
+    const boardDoc = await Board.create(board);
+    const gameCode = gameStore.create(boardDoc.toObject());
+    await Game.create({ boardId: boardDoc._id, gameCode });
+
+    const host = await makeClient();
+    const player = await makeClient();
+
+    host.emit('host:join', { gameCode });
+    await waitFor(host, 'host:joined');
+    player.emit('player:join', { gameCode, name: 'Alice' });
+    await waitFor(player, 'player:joined');
+
+    // Force to final-clue phase
+    const entry = gameStore.get(gameCode);
+    entry.state.phase = 'final-clue';
+
+    player.disconnect();
+    const rejoining = await makeClient();
+    const rejoinedP = waitFor(rejoining, 'player:rejoined');
+    rejoining.emit('player:rejoin', { gameCode, name: 'Alice' });
+    const data = await rejoinedP;
+
+    expect(data.fjType).toBe('image');
+    expect(data.fjMediaUrl).toBe('https://example.com/fj.jpg');
+
+    host.disconnect();
+    rejoining.disconnect();
+  });
+
+  test('fjType and fjMediaUrl are null when rejoining outside FJ phases', async () => {
+    const { host, player1, player2, gameCode } = await createStartedGame();
+
+    player1.disconnect();
+    const rejoining = await makeClient();
+    const rejoinedP = waitFor(rejoining, 'player:rejoined');
+    rejoining.emit('player:rejoin', { gameCode, name: 'Alice' });
+    const data = await rejoinedP;
+
+    expect(data.fjType).toBeNull();
+    expect(data.fjMediaUrl).toBeNull();
+
+    host.disconnect();
+    player2.disconnect();
+    rejoining.disconnect();
+  });
+});
+
 async function createStartedGame() {
   const { gameCode } = await setupGame();
   const host = await makeClient();
