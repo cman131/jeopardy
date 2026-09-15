@@ -414,7 +414,7 @@ function HostFinalReveal({ game }) {
       <button
         onClick={() => socket.emit('host:revealNext')}
         style={{ marginTop: 16, padding: '12px 32px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>
-        Reveal Next →
+        Reveal Next ({revealed.length + 1} of {(game.players || []).length}) →
       </button>
     </div>
   );
