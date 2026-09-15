@@ -35,7 +35,9 @@ export default function BoardEditorGrid({ categories, values, onChange }) {
             {values.map((value, qi) => {
               const clue = cat.clues[qi] || { question: '', answer: '' };
               const type = clue.type || 'regular';
-              const complete = !!(clue.question && clue.answer && (type === 'regular' || clue.mediaUrl));
+              const complete = type === 'regular'
+                ? !!(clue.question && clue.answer)
+                : !!(clue.answer && clue.mediaUrl);
               const isActive = activeCell?.ci === ci && activeCell?.qi === qi;
               return (
                 <div
@@ -57,7 +59,7 @@ export default function BoardEditorGrid({ categories, values, onChange }) {
                   </div>
                   {complete ? (
                     <div style={{ fontSize: 9, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
-                      {type === 'image' ? '📷 ' : type === 'video' ? '▶ ' : type === 'audio' ? '🔊 ' : ''}{clue.question}
+                      {type === 'image' ? '📷' : type === 'video' ? '▶' : type === 'audio' ? '🔊' : ''}{clue.question ? (type !== 'regular' ? ' ' : '') + clue.question : ''}
                     </div>
                   ) : (
                     <div style={{ fontSize: 9, color: '#374151', fontStyle: 'italic', marginTop: 2 }}>Click to add...</div>
@@ -133,7 +135,9 @@ function ClueModal({ ci, qi, value, categoryName, clue, onUpdate, onClose }) {
           </div>
         )}
 
-        <div style={{ fontSize: 10, color: 'var(--color-label)', letterSpacing: 1, marginBottom: 6 }}>CLUE</div>
+        <div style={{ fontSize: 10, color: 'var(--color-label)', letterSpacing: 1, marginBottom: 6 }}>
+          CLUE{type !== 'regular' ? <span style={{ color: 'var(--color-muted)', fontWeight: 'normal' }}> (optional)</span> : ''}
+        </div>
         <textarea
           value={clue.question}
           onChange={e => onUpdate('question', e.target.value)}
