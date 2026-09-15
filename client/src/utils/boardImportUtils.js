@@ -29,9 +29,10 @@ function mapClueRow(row) {
     clue.question = (row.topCaption || '').trim();
     clue.mediaUrl = (row.clueText || '').trim();
   } else {
-    // image or audio — clueText is a Buzzinga content hash
+    // image or audio — clueText is a Buzzinga content hash; resolve to CDN URL
     clue.question = (row.topCaption || '').trim();
-    clue.mediaHash = (row.clueText || '').trim();
+    const hash = (row.clueText || '').trim();
+    clue.mediaUrl = hash ? `https://buzzinga.s3.us-east-2.amazonaws.com/${hash}` : '';
   }
 
   return clue;
@@ -42,7 +43,6 @@ export function parseBuzzingaCsv(csvText) {
 
   const rounds = { 1: {}, 2: {} };
   let finalJeopardy = null;
-  let warnings = 0;
 
   for (const row of data) {
     const roundVal = String(row.round || '').trim().toLowerCase();
@@ -51,17 +51,20 @@ export function parseBuzzingaCsv(csvText) {
     if (roundVal === 'final') {
       const buzzingaType = (row.clueType || 'TEXT').trim().toUpperCase();
       const ourType = CLUE_TYPE_MAP[buzzingaType] || 'regular';
+      const clueText = (row.clueText || '').trim();
       finalJeopardy = {
         category: (row.cat || '').trim(),
-        clue: ourType === 'regular' ? (row.clueText || '').trim() : (row.topCaption || '').trim(),
+        clue: ourType === 'regular' ? clueText : (row.topCaption || '').trim(),
         answer: (row.correctResponse || '').trim(),
         type: ourType,
-        mediaUrl: ourType === 'video' ? (row.clueText || '').trim() : '',
-        mediaHash:
-          ourType === 'image' || ourType === 'audio' ? (row.clueText || '').trim() : '',
+        mediaUrl: ourType === 'video'
+          ? clueText
+          : (ourType === 'image' || ourType === 'audio') && clueText
+            ? `https://buzzinga.s3.us-east-2.amazonaws.com/${clueText}`
+            : '',
+        mediaHash: '',
         answerImage: '',
       };
-      if (finalJeopardy.mediaHash) warnings++;
       continue;
     }
 
@@ -76,9 +79,7 @@ export function parseBuzzingaCsv(csvText) {
       rounds[roundNum][col] = { name: (row.cat || 'CATEGORY').trim(), clues: {} };
     }
 
-    const clue = mapClueRow(row);
-    if (clue.mediaHash) warnings++;
-    rounds[roundNum][col].clues[rowNum] = clue;
+    rounds[roundNum][col].clues[rowNum] = mapClueRow(row);
   }
 
   function buildRound(roundData) {
@@ -109,7 +110,7 @@ export function parseBuzzingaCsv(csvText) {
         answerImage: '',
       },
     },
-    warnings,
+    warnings: 0,
   };
 }
 
