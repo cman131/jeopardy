@@ -180,7 +180,7 @@ function ClueDisplay({ game }) {
               <div style={{ fontSize: 32, fontWeight: 'bold', lineHeight: 1.5, maxWidth: 720, marginBottom: 20, color: 'var(--color-white)' }}>
                 {currentClue.question}
               </div>
-              <ClueMedia type={currentClue.type} mediaUrl={currentClue.mediaUrl} videoReady={currentClue.type === 'video' ? videoPlaying : true} />
+              <ClueMedia type={currentClue.type} mediaUrl={currentClue.mediaUrl} mediaReady={['video', 'audio'].includes(currentClue.type) ? videoPlaying : true} />
               {answerRevealed && (
                 <div style={{ marginTop: 24, padding: '16px 24px', background: 'var(--bg-surface)', borderRadius: 10, display: 'inline-block' }}>
                   <div style={{ fontSize: 22, color: 'var(--color-green)', fontWeight: 'bold', marginBottom: revealedAnswerImage ? 12 : 0 }}>
@@ -273,7 +273,7 @@ function DisplayFinalClue({ game }) {
       <div style={{ fontSize: 22, color: 'var(--color-label)', marginBottom: 16, textAlign: 'center', letterSpacing: 2 }}>{game.fjCategory}</div>
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: 32, marginBottom: 32, textAlign: 'center' }}>
         <div style={{ fontSize: 24, lineHeight: 1.6, color: 'var(--color-white)' }}>{game.fjClue}</div>
-        <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} videoReady={game.fjType === 'video' ? game.videoPlaying : true} />
+        <ClueMedia type={game.fjType} mediaUrl={game.fjMediaUrl} mediaReady={['video', 'audio'].includes(game.fjType) ? game.videoPlaying : true} />
       </div>
       <div style={{ textAlign: 'center', color: 'var(--color-muted)', marginBottom: 20, fontSize: 16 }}>Write your answers!</div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
