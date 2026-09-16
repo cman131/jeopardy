@@ -84,7 +84,7 @@ export default function DisplayPage() {
           Host disconnected — waiting to reconnect...
         </div>
       )}
-      {revealCats && revealStep <= revealCats.length && (
+      {game.phase === 'board' && revealCats && revealStep <= revealCats.length && (
         <CategoryRevealDisplay categories={revealCats} step={revealStep} round={game.currentRound || 1} />
       )}
       {game.phase === 'board' && !(revealCats && revealStep <= revealCats.length) && (

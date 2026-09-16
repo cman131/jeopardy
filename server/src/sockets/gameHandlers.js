@@ -369,6 +369,7 @@ function registerGameHandlers(io, socket) {
   socket.on('host:revealCategory', () => {
     const entry = _getHostEntry(socket);
     if (!entry) return;
+    if (entry.state.phase !== 'board') return;
     io.to(_gameCodeFor(socket)).emit('game:categoryRevealed');
   });
 
