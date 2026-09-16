@@ -10,6 +10,8 @@ export default function DisplayPage() {
   const { gameCode } = useParams();
   const [game, setGame] = useState(null);
   const [hostConnected, setHostConnected] = useState(true);
+  const [revealCats, setRevealCats] = useState(null);
+  const [revealStep, setRevealStep] = useState(0);
 
   useEffect(() => {
     socket.connect();
@@ -17,8 +19,11 @@ export default function DisplayPage() {
 
     socket.on('display:joined', state => setGame({ ...state, board: { categoryNames: state.categoryNames } }));
     socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
-    socket.on('game:started', ({ board, players, currentPicker, currentRound }) =>
-      setGame({ phase: 'board', board, players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null }));
+    socket.on('game:started', ({ board, players, currentPicker, currentRound }) => {
+      setGame({ phase: 'board', board, players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null });
+      setRevealCats(board.categoryNames);
+      setRevealStep(0);
+    });
     socket.on('game:clueRevealed', clue =>
       setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked', answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null, videoPlaying: false })));
     socket.on('game:wrongAnswer', ({ players }) =>
@@ -37,8 +42,12 @@ export default function DisplayPage() {
 
     socket.on('game:betweenRounds', ({ players }) =>
       setGame(g => ({ ...g, phase: 'between-rounds', players })));
-    socket.on('game:round2Started', ({ currentRound, categoryNames, currentPicker, players }) =>
-      setGame(g => ({ ...g, phase: 'board', currentRound, board: { ...g.board, categoryNames }, currentPicker, players, revealedClues: [] })));
+    socket.on('game:round2Started', ({ currentRound, categoryNames, currentPicker, players }) => {
+      setGame(g => ({ ...g, phase: 'board', currentRound, board: { ...g.board, categoryNames }, currentPicker, players, revealedClues: [] }));
+      setRevealCats(categoryNames);
+      setRevealStep(0);
+    });
+    socket.on('game:categoryRevealed', () => setRevealStep(s => s + 1));
     socket.on('game:finalWager', ({ category }) =>
       setGame(g => ({ ...g, phase: 'final-wager', fjCategory: category, wagersSubmitted: [] })));
     socket.on('game:wagerSubmitted', ({ playerName }) =>
@@ -74,7 +83,10 @@ export default function DisplayPage() {
           Host disconnected — waiting to reconnect...
         </div>
       )}
-      {(game.phase === 'board') && (
+      {revealCats && revealStep <= 6 && (
+        <CategoryRevealDisplay categories={revealCats} step={revealStep} round={game.currentRound || 1} />
+      )}
+      {game.phase === 'board' && !(revealCats && revealStep <= 6) && (
         <>
           <GameBoard categoryNames={game.board?.categoryNames || []} revealedClues={game.revealedClues} activeClue={game.currentClue} round={game.currentRound || 1} />
           <ScoreBar players={game.players} currentPicker={game.currentPicker} />
@@ -341,6 +353,58 @@ function RevealCard({ playerName, wager, answer, correct, finalScore }) {
         <div style={{ color: 'var(--color-amber)', fontSize: 16, marginTop: 4 }}>
           Total: {finalScore < 0 ? `-$${Math.abs(finalScore)}` : `$${finalScore}`}
         </div>
+      )}
+    </div>
+  );
+}
+
+function CategoryRevealDisplay({ categories, step, round }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'var(--bg-deep)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center',
+      padding: 48,
+    }}>
+      <style>{`
+        @keyframes categorySlideUp {
+          from { opacity: 0; transform: translateY(40px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      {step === 0 ? (
+        <div style={{ fontSize: 64, fontWeight: 'bold', color: 'var(--color-amber)', letterSpacing: 8 }}>
+          {round === 1 ? 'JEOPARDY!' : 'DOUBLE JEOPARDY!'}
+        </div>
+      ) : (
+        <>
+          <div
+            key={step}
+            style={{
+              background: '#1e2a5e',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: 8,
+              padding: '32px 56px',
+              fontSize: 28,
+              fontWeight: 'bold',
+              letterSpacing: 4,
+              color: '#93c5fd',
+              textTransform: 'uppercase',
+              animation: 'categorySlideUp 0.5s ease-out',
+              maxWidth: 600,
+            }}
+          >
+            {categories[step - 1]}
+          </div>
+          <div style={{ marginTop: 20, fontSize: 11, color: 'var(--color-muted)', letterSpacing: 3 }}>
+            CATEGORY {step} OF 6
+          </div>
+        </>
       )}
     </div>
   );
