@@ -35,12 +35,13 @@ export default function HostPage() {
       socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
       socket.on('game:started', ({ players, currentPicker, currentRound }) =>
         setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null })));
-      socket.on('host:clue', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, answerRevealed: false, buzzerState: 'locked', videoPlayed: false })));
-      socket.on('game:wrongAnswer', ({ players, buzzedPlayers }) => setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'locked', players, buzzedPlayers: buzzedPlayers || [] })));
+      socket.on('host:clue', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, answerRevealed: false, boardReady: false, buzzerState: 'locked', videoPlayed: false })));
+      socket.on('game:wrongAnswer', ({ players, buzzedPlayers }) => setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'open', players, buzzedPlayers: buzzedPlayers || [] })));
+      socket.on('game:boardReady', ({ players }) => setGame(g => ({ ...g, boardReady: true, players })));
       socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
       socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName })));
       socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
-        setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, answerRevealed: false })));
+        setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, answerRevealed: false, boardReady: false })));
       socket.on('game:clueSkipped', ({ revealedClues, currentPicker }) =>
         setGame(g => ({ ...g, phase: 'board', revealedClues, currentPicker, currentClue: null, answerRevealed: false })));
       socket.on('game:answerRevealed', () => setGame(g => ({ ...g, answerRevealed: true })));
@@ -174,7 +175,7 @@ function HostBoard({ game, gameCode, board }) {
 }
 
 function HostClue({ game, board, onPlayVideo }) {
-  const { currentClue, phase, buzzedBy, players, buzzerState, answerRevealed } = game;
+  const { currentClue, phase, buzzedBy, players, buzzerState, boardReady } = game;
   const currentRound = game.currentRound || 1;
   const currentCategories = board[`round${currentRound}`].categories;
   const clueData = currentClue && currentCategories[currentClue.categoryIndex]?.clues[currentClue.clueIndex];
@@ -233,20 +234,24 @@ function HostClue({ game, board, onPlayVideo }) {
       )}
       {phase === 'judging' && clueData && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => socket.emit('host:revealAnswer')}
-            disabled={answerRevealed}
-            style={{ width: '100%', padding: '10px 0', background: answerRevealed ? 'var(--bg-surface)' : '#7c3aed', color: answerRevealed ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 'bold', cursor: answerRevealed ? 'not-allowed' : 'pointer', marginBottom: 4 }}>
-            {answerRevealed ? '✓ Answer Revealed' : 'Reveal Answer on Display'}
-          </button>
-          <button onClick={() => socket.emit('host:judge', { result: 'correct' })}
-            style={{ flex: 1, padding: 16, background: '#14532d', border: '2px solid #16a34a', color: 'var(--color-green)', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', lineHeight: 1.3 }}>
-            ✓ Correct<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>+${clueValue}</span>
-          </button>
-          <button onClick={() => socket.emit('host:judge', { result: 'incorrect' })}
-            style={{ flex: 1, padding: 16, background: '#450a0a', border: '2px solid #b91c1c', color: 'var(--color-red)', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', lineHeight: 1.3 }}>
-            ✗ Incorrect<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>-${clueValue}</span>
-          </button>
+          {!boardReady ? (
+            <>
+              <button onClick={() => socket.emit('host:judge', { result: 'correct' })}
+                style={{ flex: 1, padding: 16, background: '#14532d', border: '2px solid #16a34a', color: 'var(--color-green)', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', lineHeight: 1.3 }}>
+                ✓ Correct<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>+${clueValue}</span>
+              </button>
+              <button onClick={() => socket.emit('host:judge', { result: 'incorrect' })}
+                style={{ flex: 1, padding: 16, background: '#450a0a', border: '2px solid #b91c1c', color: 'var(--color-red)', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', lineHeight: 1.3 }}>
+                ✗ Incorrect<br /><span style={{ fontSize: 11, fontWeight: 'normal' }}>-${clueValue}</span>
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => socket.emit('host:backToBoard')}
+              style={{ width: '100%', padding: 16, background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
+              ← Back to Board
+            </button>
+          )}
         </div>
       )}
       <ScoreBar players={players || []} />
