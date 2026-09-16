@@ -81,7 +81,7 @@ When `game:revealNext` arrives and `revealStep` exceeds 6, both pages clear `rev
 
 | File | Change |
 |------|--------|
-| `server/index.js` (or equivalent socket handler file) | Add `host:revealNext` relay handler |
+| `server/src/sockets/gameHandlers.js` | Add `host:revealNext` relay handler |
 | `client/src/pages/DisplayPage.jsx` | Add `revealCats`/`revealStep` state; listen for `game:revealNext`; extract categories on `game:started` and `game:round2Started`; add `CategoryRevealDisplay` component; render it when in reveal mode |
 | `client/src/pages/HostPage.jsx` | Same local state + listener; add `HostReveal` component; render it when in reveal mode |
 
