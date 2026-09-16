@@ -115,14 +115,12 @@ function registerGameHandlers(io, socket) {
     const entry = _getHostEntry(socket);
     if (!entry) return;
     const gameCode = _gameCodeFor(socket);
-    // Capture buzzedBy before judge() clears it
     const judgedPlayer = entry.state.buzzedBy;
     try { entry.state.judge(result); } catch (err) {
       return socket.emit('error:generic', { message: err.message });
     }
     const pub = entry.state.getPublicState();
 
-    // Only persist the judged player's updated score + new history entry
     if (judgedPlayer) {
       const player = entry.state.players.find(p => p.name === judgedPlayer);
       if (player) {
@@ -135,32 +133,42 @@ function registerGameHandlers(io, socket) {
         }
       }
     }
-    await Game.updateOne({ gameCode }, { $set: { revealedClues: pub.revealedClues } });
 
     const phase = entry.state.phase;
-    if (phase === 'clue') {
-      // Wrong answer — clue continues; go back to awaiting buzzers
-      const state = entry.state.getPublicState();
-      io.to(gameCode).emit('game:wrongAnswer', {
-        players: state.players,
-        judgedPlayer,
-        buzzedPlayers: entry.state.buzzedPlayers,
+
+    if (phase === 'judging') {
+      // Correct answer — boardReady=true. Auto-reveal answer; host must call host:backToBoard.
+      const { categoryIndex, clueIndex } = entry.state.currentClue;
+      const clue = entry.state.board[`round${entry.state.currentRound}`].categories[categoryIndex].clues[clueIndex];
+      io.to(gameCode).emit('game:answerRevealed', {
+        answer: clue.answer,
+        answerImage: clue.answerImage || null,
       });
-    } else if (phase === 'between-rounds') {
-      io.to(gameCode).emit('game:betweenRounds', { players: entry.state.getPublicState().players });
-    } else if (phase === 'final-wager') {
-      io.to(gameCode).emit('game:finalWager', { category: entry.state.board.finalJeopardy.category });
-    } else if (phase === 'finished') {
-      await Game.updateOne({ gameCode }, { $set: { status: 'finished', completedAt: new Date() } });
-      io.to(gameCode).emit('game:finished', { players: entry.state.getPublicState().players });
+      io.to(gameCode).emit('game:boardReady', { players: pub.players });
     } else {
-      const state = entry.state.getPublicState();
-      io.to(gameCode).emit('game:scored', {
-        players: state.players,
-        currentPicker: state.currentPicker,
-        currentRound: state.currentRound,
-        revealedClues: state.revealedClues.filter(r => r.round === entry.state.currentRound),
-      });
+      await Game.updateOne({ gameCode }, { $set: { revealedClues: pub.revealedClues } });
+      if (phase === 'clue') {
+        io.to(gameCode).emit('game:wrongAnswer', {
+          players: pub.players,
+          judgedPlayer,
+          buzzedPlayers: entry.state.buzzedPlayers,
+        });
+      } else if (phase === 'between-rounds') {
+        io.to(gameCode).emit('game:betweenRounds', { players: pub.players });
+      } else if (phase === 'final-wager') {
+        io.to(gameCode).emit('game:finalWager', { category: entry.state.board.finalJeopardy.category });
+      } else if (phase === 'finished') {
+        await Game.updateOne({ gameCode }, { $set: { status: 'finished', completedAt: new Date() } });
+        io.to(gameCode).emit('game:finished', { players: pub.players });
+      } else {
+        // board phase — all-incorrect auto-skip
+        io.to(gameCode).emit('game:scored', {
+          players: pub.players,
+          currentPicker: pub.currentPicker,
+          currentRound: pub.currentRound,
+          revealedClues: pub.revealedClues.filter(r => r.round === entry.state.currentRound),
+        });
+      }
     }
   });
 
@@ -330,6 +338,34 @@ function registerGameHandlers(io, socket) {
     }
   });
 
+  socket.on('host:backToBoard', async () => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    const gameCode = _gameCodeFor(socket);
+    try { entry.state.backToBoard(); } catch (err) {
+      return socket.emit('error:generic', { message: err.message });
+    }
+    const pub = entry.state.getPublicState();
+    await Game.updateOne({ gameCode }, { $set: { revealedClues: pub.revealedClues } });
+
+    const phase = entry.state.phase;
+    if (phase === 'between-rounds') {
+      io.to(gameCode).emit('game:betweenRounds', { players: pub.players });
+    } else if (phase === 'final-wager') {
+      io.to(gameCode).emit('game:finalWager', { category: entry.state.board.finalJeopardy.category });
+    } else if (phase === 'finished') {
+      await Game.updateOne({ gameCode }, { $set: { status: 'finished', completedAt: new Date() } });
+      io.to(gameCode).emit('game:finished', { players: pub.players });
+    } else {
+      io.to(gameCode).emit('game:scored', {
+        players: pub.players,
+        currentPicker: pub.currentPicker,
+        currentRound: pub.currentRound,
+        revealedClues: pub.revealedClues.filter(r => r.round === entry.state.currentRound),
+      });
+    }
+  });
+
   socket.on('host:endGame', async () => {
     const entry = _getHostEntry(socket);
     if (!entry) return;
@@ -337,19 +373,6 @@ function registerGameHandlers(io, socket) {
     entry.state.endGame();
     await Game.updateOne({ gameCode }, { $set: { status: 'finished', completedAt: new Date() } });
     io.to(gameCode).emit('game:finished', { players: entry.state.players });
-  });
-
-  socket.on('host:revealAnswer', () => {
-    const entry = _getHostEntry(socket);
-    if (!entry) return;
-    if (entry.state.phase !== 'judging') return;
-    const gameCode = _gameCodeFor(socket);
-    const { categoryIndex, clueIndex } = entry.state.currentClue;
-    const clue = entry.state.board[`round${entry.state.currentRound}`].categories[categoryIndex].clues[clueIndex];
-    io.to(gameCode).emit('game:answerRevealed', {
-      answer: clue.answer,
-      answerImage: clue.answerImage || null,
-    });
   });
 
   socket.on('host:playVideo', () => {

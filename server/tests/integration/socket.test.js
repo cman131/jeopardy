@@ -229,7 +229,7 @@ async function createStartedGame() {
 }
 
 describe('full game flow', () => {
-  test('correct answer: scores player, returns to board', async () => {
+  test('correct answer: auto-reveals answer then returns to board after backToBoard', async () => {
     const { gameCode } = await setupGame();
     const host = await makeClient();
     const alice = await makeClient();
@@ -237,33 +237,36 @@ describe('full game flow', () => {
 
     host.emit('host:join', { gameCode });
     await waitFor(host, 'host:joined');
-
     alice.emit('player:join', { gameCode, name: 'Alice' });
     await waitFor(alice, 'player:joined');
     bob.emit('player:join', { gameCode, name: 'Bob' });
     await waitFor(bob, 'player:joined');
-
     host.emit('host:startGame', { gameCode });
     await waitFor(host, 'game:started');
 
     host.emit('host:selectClue', { categoryIndex: 0, clueIndex: 2 }); // $600
     await waitFor(alice, 'game:clueRevealed');
-
     host.emit('host:unlock');
     await waitFor(alice, 'game:buzzersOpen');
-
     alice.emit('player:buzz');
     const claimed = await waitFor(host, 'game:buzzClaimed');
     expect(claimed.playerName).toBe('Alice');
 
+    const answerRevealed = waitFor(alice, 'game:answerRevealed');
+    const boardReady = waitFor(alice, 'game:boardReady');
     host.emit('host:judge', { result: 'correct' });
-    const scored = await waitFor(alice, 'game:scored');
-    expect(scored.players.find(p => p.name === 'Alice').score).toBe(600);
-    expect(scored.currentPicker).toBe('Alice');
+    const revealData = await answerRevealed;
+    expect(revealData.answer).toBe('R1-A0-2');
+    const boardReadyData = await boardReady;
+    expect(boardReadyData.players.find(p => p.name === 'Alice').score).toBe(600);
 
-    host.disconnect();
-    alice.disconnect();
-    bob.disconnect();
+    const scored = waitFor(alice, 'game:scored');
+    host.emit('host:backToBoard');
+    const scoredData = await scored;
+    expect(scoredData.players.find(p => p.name === 'Alice').score).toBe(600);
+    expect(scoredData.currentPicker).toBe('Alice');
+
+    host.disconnect(); alice.disconnect(); bob.disconnect();
   });
 
   test('incorrect then correct: first wrong player loses points, second gains', async () => {
@@ -278,7 +281,6 @@ describe('full game flow', () => {
     await waitFor(alice, 'player:joined');
     bob.emit('player:join', { gameCode, name: 'Bob' });
     await waitFor(bob, 'player:joined');
-
     host.emit('host:startGame', { gameCode });
     await waitFor(host, 'game:started');
     host.emit('host:selectClue', { categoryIndex: 0, clueIndex: 0 }); // $200
@@ -291,17 +293,20 @@ describe('full game flow', () => {
     host.emit('host:judge', { result: 'incorrect' });
     await waitFor(alice, 'game:wrongAnswer'); // Alice: -200, buzzers re-open
 
-    // Bob can now buzz
     bob.emit('player:buzz');
     await waitFor(host, 'game:buzzClaimed');
-    host.emit('host:judge', { result: 'correct' });
-    const scored = await waitFor(bob, 'game:scored');
-    expect(scored.players.find(p => p.name === 'Alice').score).toBe(-200);
-    expect(scored.players.find(p => p.name === 'Bob').score).toBe(200);
 
-    host.disconnect();
-    alice.disconnect();
-    bob.disconnect();
+    const boardReady = waitFor(bob, 'game:boardReady');
+    host.emit('host:judge', { result: 'correct' });
+    await boardReady;
+
+    const scored = waitFor(bob, 'game:scored');
+    host.emit('host:backToBoard');
+    const scoredData = await scored;
+    expect(scoredData.players.find(p => p.name === 'Alice').score).toBe(-200);
+    expect(scoredData.players.find(p => p.name === 'Bob').score).toBe(200);
+
+    host.disconnect(); alice.disconnect(); bob.disconnect();
   });
 });
 
@@ -448,7 +453,7 @@ describe('multi-round socket flow', () => {
   }, 40000);
 });
 
-describe('host:revealAnswer', () => {
+describe('correct judgment auto-reveals answer', () => {
   async function reachJudgingPhase(gameCode) {
     const host = await makeClient();
     const display = await makeClient();
@@ -473,7 +478,7 @@ describe('host:revealAnswer', () => {
     return { host, display, p1, p2 };
   }
 
-  test('broadcasts game:answerRevealed with answer and answerImage', async () => {
+  test('host:judge correct broadcasts game:answerRevealed with answer and answerImage', async () => {
     const board = makeTestBoard();
     board.round1.categories[0].clues[0].answerImage = 'https://example.com/ans.jpg';
     const boardDoc = await Board.create(board);
@@ -482,7 +487,7 @@ describe('host:revealAnswer', () => {
 
     const { host, display, p1, p2 } = await reachJudgingPhase(gameCode);
     const revealed = waitFor(display, 'game:answerRevealed');
-    host.emit('host:revealAnswer');
+    host.emit('host:judge', { result: 'correct' });
     const data = await revealed;
     expect(data.answer).toBe('R1-A0-0');
     expect(data.answerImage).toBe('https://example.com/ans.jpg');
@@ -493,24 +498,22 @@ describe('host:revealAnswer', () => {
     const { gameCode } = await setupGame();
     const { host, display, p1, p2 } = await reachJudgingPhase(gameCode);
     const revealed = waitFor(display, 'game:answerRevealed');
-    host.emit('host:revealAnswer');
+    host.emit('host:judge', { result: 'correct' });
     const data = await revealed;
     expect(data.answer).toBe('R1-A0-0');
     expect(data.answerImage).toBeNull();
     host.disconnect(); display.disconnect(); p1.disconnect(); p2.disconnect();
   });
 
-  test('host:revealAnswer is ignored outside judging phase', async () => {
+  test('game:answerRevealed is NOT emitted on incorrect judgment', async () => {
     const { gameCode } = await setupGame();
-    const host = await makeClient();
-    host.emit('host:join', { gameCode });
-    await waitFor(host, 'host:joined');
+    const { host, display, p1, p2 } = await reachJudgingPhase(gameCode);
     let received = false;
-    host.on('game:answerRevealed', () => { received = true; });
-    host.emit('host:revealAnswer');
-    await new Promise(r => setTimeout(r, 100));
+    display.on('game:answerRevealed', () => { received = true; });
+    host.emit('host:judge', { result: 'incorrect' });
+    await new Promise(r => setTimeout(r, 150));
     expect(received).toBe(false);
-    host.disconnect();
+    host.disconnect(); display.disconnect(); p1.disconnect(); p2.disconnect();
   });
 });
 
