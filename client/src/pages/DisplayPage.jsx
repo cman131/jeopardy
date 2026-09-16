@@ -27,10 +27,11 @@ export default function DisplayPage() {
     socket.on('game:clueRevealed', clue =>
       setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked', answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null, videoPlaying: false })));
     socket.on('game:wrongAnswer', ({ players }) =>
-      setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'locked', players })));
+      setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'open', players })));
     socket.on('game:videoPlay', () => setGame(g => ({ ...g, videoPlaying: true })));
     socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
     socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName, buzzerState: 'claimed' })));
+    socket.on('game:boardReady', ({ players }) => setGame(g => ({ ...g, players })));
     socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
       setGame(g => ({ ...g, phase: 'board', players, currentPicker, revealedClues, currentRound: currentRound || g.currentRound, currentClue: null, buzzedBy: null, answerRevealed: false, revealedAnswer: null, revealedAnswerImage: null })));
     socket.on('game:answerRevealed', ({ answer, answerImage }) =>

@@ -69,7 +69,7 @@ export default function PlayerPage() {
     socket.on('game:started', ({ players, currentPicker, currentRound }) =>
       setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null, buzzerState: 'locked' })));
     socket.on('game:clueRevealed', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, buzzerState: 'locked', myBuzzedOut: false })));
-    socket.on('game:wrongAnswer', ({ players, buzzedPlayers }) => setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'locked', players, myBuzzedOut: (buzzedPlayers || []).includes(myName) })));
+    socket.on('game:wrongAnswer', ({ players, buzzedPlayers }) => setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'open', players, myBuzzedOut: (buzzedPlayers || []).includes(myName) })));
     socket.on('game:buzzersOpen', () => setGame(g => ({ ...g, buzzerState: 'open' })));
     socket.on('game:buzzClaimed', ({ playerName }) => setGame(g => ({ ...g, phase: 'judging', buzzedBy: playerName, buzzerState: 'claimed' })));
     socket.on('game:scored', ({ players, currentPicker, revealedClues, currentRound }) =>
