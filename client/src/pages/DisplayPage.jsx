@@ -84,10 +84,10 @@ export default function DisplayPage() {
           Host disconnected — waiting to reconnect...
         </div>
       )}
-      {revealCats && revealStep <= 6 && (
+      {revealCats && revealStep <= revealCats.length && (
         <CategoryRevealDisplay categories={revealCats} step={revealStep} round={game.currentRound || 1} />
       )}
-      {game.phase === 'board' && !(revealCats && revealStep <= 6) && (
+      {game.phase === 'board' && !(revealCats && revealStep <= revealCats.length) && (
         <>
           <GameBoard categoryNames={game.board?.categoryNames || []} revealedClues={game.revealedClues} activeClue={game.currentClue} round={game.currentRound || 1} />
           <ScoreBar players={game.players} currentPicker={game.currentPicker} />
@@ -397,13 +397,14 @@ function CategoryRevealDisplay({ categories, step, round }) {
               color: '#93c5fd',
               textTransform: 'uppercase',
               animation: 'categorySlideUp 0.5s ease-out',
+              animationFillMode: 'forwards',
               maxWidth: 600,
             }}
           >
             {categories[step - 1]}
           </div>
           <div style={{ marginTop: 20, fontSize: 11, color: 'var(--color-muted)', letterSpacing: 3 }}>
-            CATEGORY {step} OF 6
+            CATEGORY {step} OF {categories.length}
           </div>
         </>
       )}
