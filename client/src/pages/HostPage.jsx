@@ -102,7 +102,7 @@ export default function HostPage() {
       </div>
       {phase === 'lobby' && <HostLobby game={game} gameCode={gameCode} boardName={board.name} />}
       {phase === 'board' && !(revealCats && revealStep <= revealCats.length) && <HostBoard game={game} gameCode={gameCode} board={board} />}
-      {revealCats && revealStep <= revealCats.length && (
+      {phase === 'board' && revealCats && revealStep <= revealCats.length && (
         <HostReveal
           categories={revealCats}
           step={revealStep}
@@ -475,6 +475,7 @@ function HostReveal({ categories, step, onReveal }) {
         ))}
       </div>
       <div>
+        {/* When allRevealed, this final emit pushes revealStep past categories.length, hiding this component */}
         <button
           onClick={onReveal}
           style={{
