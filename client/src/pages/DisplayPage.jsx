@@ -17,7 +17,7 @@ export default function DisplayPage() {
     socket.connect();
     socket.emit('display:join', { gameCode });
 
-    socket.on('display:joined', state => setGame({ ...state, board: { categoryNames: state.categoryNames } }));
+    socket.on('display:joined', state => setGame({ ...state, board: { categoryNames: state.categoryNames }, answerRevealed: !!(state.boardReady && state.revealedAnswer != null) }));
     socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
     socket.on('game:started', ({ board, players, currentPicker, currentRound }) => {
       setGame({ phase: 'board', board, players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null, buzzedBy: null });

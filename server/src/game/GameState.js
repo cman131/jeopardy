@@ -226,6 +226,13 @@ class GameState {
   }
 
   getPublicState() {
+    let revealedAnswer = null;
+    let revealedAnswerImage = null;
+    if (this.boardReady && this.currentClue) {
+      const clue = this._currentCategories()[this.currentClue.categoryIndex].clues[this.currentClue.clueIndex];
+      revealedAnswer = clue.answer;
+      revealedAnswerImage = clue.answerImage || null;
+    }
     return {
       phase: this.phase,
       currentRound: this.currentRound,
@@ -248,6 +255,8 @@ class GameState {
       finalRevealIndex: this.finalRevealIndex,
       finalJeopardyCategory: this.board.finalJeopardy?.category,
       boardReady: this.boardReady,
+      revealedAnswer,
+      revealedAnswerImage,
     };
   }
 

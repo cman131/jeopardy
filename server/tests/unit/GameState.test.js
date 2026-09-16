@@ -629,4 +629,28 @@ describe('GameState — boardReady flow', () => {
     const gs = judgingGame();
     expect(() => gs.backToBoard()).toThrow('Invalid state');
   });
+
+  test('getPublicState includes revealedAnswer when boardReady', () => {
+    const gs = judgingGame();
+    gs.judge('correct');
+    const pub = gs.getPublicState();
+    expect(pub.revealedAnswer).toBe('R1-A0-2');
+    expect(pub.revealedAnswerImage).toBeNull();
+  });
+
+  test('getPublicState has null revealedAnswer when not boardReady', () => {
+    const gs = judgingGame();
+    const pub = gs.getPublicState();
+    expect(pub.revealedAnswer).toBeNull();
+    expect(pub.revealedAnswerImage).toBeNull();
+  });
+
+  test('getPublicState revealedAnswer cleared after backToBoard', () => {
+    const gs = judgingGame();
+    gs.judge('correct');
+    gs.backToBoard();
+    const pub = gs.getPublicState();
+    expect(pub.revealedAnswer).toBeNull();
+    expect(pub.revealedAnswerImage).toBeNull();
+  });
 });
