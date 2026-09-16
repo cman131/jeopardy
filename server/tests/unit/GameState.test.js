@@ -84,6 +84,7 @@ describe('GameState — board → clue', () => {
     gs.unlock();
     gs.buzz('Alice');
     gs.judge('correct');
+    gs.backToBoard();
     expect(() => gs.selectClue(0, 0)).toThrow('already revealed');
   });
 });
@@ -142,16 +143,23 @@ describe('GameState — judging', () => {
     return gs;
   }
 
-  test('correct: adds score, appends history, sets picker, returns to board', () => {
+  test('correct: scores player, sets boardReady; backToBoard returns to board', () => {
     const gs = judgingGame();
     gs.judge('correct');
-    expect(gs.phase).toBe('board');
+    // After judge(correct): still in judging, boardReady=true, clue not yet closed
+    expect(gs.phase).toBe('judging');
+    expect(gs.boardReady).toBe(true);
     expect(gs.players[0].score).toBe(600);
     expect(gs.players[0].scoreHistory).toHaveLength(1);
     expect(gs.players[0].scoreHistory[0]).toMatchObject({
       categoryIndex: 0, clueIndex: 2, clueValue: 600, result: 'correct', delta: 600,
     });
     expect(gs.currentPicker).toBe('Alice');
+    expect(gs.revealedClues).toHaveLength(0);
+
+    gs.backToBoard();
+    expect(gs.phase).toBe('board');
+    expect(gs.boardReady).toBe(false);
     expect(gs.revealedClues).toContainEqual({ round: 1, categoryIndex: 0, clueIndex: 2 });
   });
 
@@ -203,7 +211,6 @@ describe('GameState — round transition', () => {
     gs.addPlayer('Alice');
     gs.addPlayer('Bob');
     gs.startGame();
-    // Reveal 29 clues manually
     for (let ci = 0; ci < 6; ci++) {
       for (let qi = 0; qi < 5; qi++) {
         if (ci === 5 && qi === 4) continue;
@@ -211,13 +218,14 @@ describe('GameState — round transition', () => {
         gs.unlock();
         gs.buzz('Alice');
         gs.judge('correct');
+        gs.backToBoard();
       }
     }
-    // Reveal last clue
     gs.selectClue(5, 4);
     gs.unlock();
     gs.buzz('Alice');
     gs.judge('correct');
+    gs.backToBoard();
     expect(gs.phase).toBe('between-rounds');
   });
 });
@@ -232,6 +240,7 @@ describe('selectClue', () => {
     gs.openBuzzers();
     gs.buzz('Alice');
     gs.judge('correct');
+    gs.backToBoard();
     expect(gs.revealedClues[0]).toMatchObject({ round: 1, categoryIndex: 0, clueIndex: 0 });
   });
 });
@@ -457,9 +466,10 @@ describe('GameState — getPublicState / getHostState', () => {
     gs.unlock();
     gs.buzz('Alice');
     gs.judge('correct');
+    gs.backToBoard();
     const pub = gs.getPublicState();
     pub.revealedClues.push({ round: 1, categoryIndex: 99, clueIndex: 99 });
-    expect(gs.revealedClues).toHaveLength(1); // internal state unchanged
+    expect(gs.revealedClues).toHaveLength(1);
   });
 });
 
