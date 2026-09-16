@@ -551,3 +551,72 @@ describe('GameState — media clue fields', () => {
     expect(host.currentClue.answerImage).toBeNull();
   });
 });
+
+describe('GameState — boardReady flow', () => {
+  function judgingGame() {
+    const gs = new GameState(makeBoard());
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.startGame();
+    gs.selectClue(0, 2); // clueValue(1,2) = $600
+    gs.unlock();
+    gs.buzz('Alice');
+    return gs;
+  }
+
+  test('boardReady initialises to false', () => {
+    const gs = new GameState(makeBoard());
+    expect(gs.boardReady).toBe(false);
+  });
+
+  test('getPublicState includes boardReady: false initially', () => {
+    const gs = new GameState(makeBoard());
+    gs.addPlayer('Alice');
+    gs.addPlayer('Bob');
+    gs.startGame();
+    expect(gs.getPublicState().boardReady).toBe(false);
+  });
+
+  test('judge(correct) sets boardReady true and keeps phase judging', () => {
+    const gs = judgingGame();
+    gs.judge('correct');
+    expect(gs.phase).toBe('judging');
+    expect(gs.boardReady).toBe(true);
+  });
+
+  test('judge(correct) scores player but does not close clue', () => {
+    const gs = judgingGame();
+    gs.judge('correct');
+    expect(gs.players[0].score).toBe(600);
+    expect(gs.revealedClues).toHaveLength(0);
+    expect(gs.currentClue).not.toBeNull();
+  });
+
+  test('getPublicState includes boardReady: true after correct judgment', () => {
+    const gs = judgingGame();
+    gs.judge('correct');
+    expect(gs.getPublicState().boardReady).toBe(true);
+  });
+
+  test('backToBoard closes clue and transitions to board', () => {
+    const gs = judgingGame();
+    gs.judge('correct');
+    gs.backToBoard();
+    expect(gs.phase).toBe('board');
+    expect(gs.boardReady).toBe(false);
+    expect(gs.revealedClues).toContainEqual({ round: 1, categoryIndex: 0, clueIndex: 2 });
+    expect(gs.currentClue).toBeNull();
+  });
+
+  test('backToBoard sets currentPicker to the correct answerer', () => {
+    const gs = judgingGame();
+    gs.judge('correct');
+    gs.backToBoard();
+    expect(gs.currentPicker).toBe('Alice');
+  });
+
+  test('backToBoard throws when not in boardReady state', () => {
+    const gs = judgingGame();
+    expect(() => gs.backToBoard()).toThrow('Invalid state');
+  });
+});

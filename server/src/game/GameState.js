@@ -19,6 +19,7 @@ class GameState {
     this.finalJudgments = new Map();
     this.finalRevealOrder = [];
     this.finalRevealIndex = 0;
+    this.boardReady = false;
   }
 
   _currentCategories() {
@@ -98,7 +99,7 @@ class GameState {
     });
     if (result === 'correct') {
       this.currentPicker = this.buzzedBy;
-      this._closeClue();
+      this.boardReady = true;
     } else {
       this.buzzedBy = null;
       this.buzzerState = 'open';
@@ -108,6 +109,11 @@ class GameState {
         this._closeClue();
       }
     }
+  }
+
+  backToBoard() {
+    if (this.phase !== 'judging' || !this.boardReady) throw new Error('Invalid state');
+    this._closeClue();
   }
 
   skipClue() {
@@ -202,6 +208,7 @@ class GameState {
   }
 
   _closeClue() {
+    this.boardReady = false;
     this.revealedClues.push({ round: this.currentRound, ...this.currentClue });
     this.currentClue = null;
     this.buzzedBy = null;
@@ -240,6 +247,7 @@ class GameState {
       answersSubmitted: [...this.finalAnswers.keys()],
       finalRevealIndex: this.finalRevealIndex,
       finalJeopardyCategory: this.board.finalJeopardy?.category,
+      boardReady: this.boardReady,
     };
   }
 
