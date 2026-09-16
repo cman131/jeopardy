@@ -12,6 +12,8 @@ export default function HostPage() {
   const [board, setBoard] = useState(null); // full board with answers
   const [error, setError] = useState(null);
   const [judgments, setJudgments] = useState({});
+  const [revealCats, setRevealCats] = useState(null);
+  const [revealStep, setRevealStep] = useState(0);
 
   useEffect(() => {
     async function init() {
@@ -33,8 +35,12 @@ export default function HostPage() {
       });
       socket.on('host:state', state => setGame(state));
       socket.on('game:playerJoined', ({ players }) => setGame(g => ({ ...g, players })));
-      socket.on('game:started', ({ players, currentPicker, currentRound }) =>
-        setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null })));
+      socket.on('game:started', ({ players, currentPicker, currentRound }) => {
+        setGame(g => ({ ...g, phase: 'board', players, currentPicker, currentRound: currentRound || 1, revealedClues: [], currentClue: null }));
+        const cats = boardData[`round${currentRound || 1}`].categories.map(c => c.name);
+        setRevealCats(cats);
+        setRevealStep(0);
+      });
       socket.on('host:clue', clue => setGame(g => ({ ...g, phase: 'clue', currentClue: clue, buzzedBy: null, answerRevealed: false, boardReady: false, buzzerState: 'locked', videoPlayed: false })));
       socket.on('game:wrongAnswer', ({ players, buzzedPlayers }) => setGame(g => ({ ...g, phase: 'clue', buzzedBy: null, buzzerState: 'open', players, buzzedPlayers: buzzedPlayers || [] })));
       socket.on('game:boardReady', ({ players }) => setGame(g => ({ ...g, boardReady: true, players })));
@@ -48,8 +54,12 @@ export default function HostPage() {
       socket.on('game:finished', ({ players }) => setGame(g => ({ ...g, phase: 'finished', players })));
       socket.on('game:betweenRounds', ({ players }) =>
         setGame(g => ({ ...g, phase: 'between-rounds', players })));
-      socket.on('game:round2Started', ({ currentRound, categoryNames, currentPicker, players }) =>
-        setGame(g => ({ ...g, phase: 'board', currentRound, categoryNames, currentPicker, players, revealedClues: [] })));
+      socket.on('game:round2Started', ({ currentRound, categoryNames, currentPicker, players }) => {
+        setGame(g => ({ ...g, phase: 'board', currentRound, categoryNames, currentPicker, players, revealedClues: [] }));
+        setRevealCats(categoryNames);
+        setRevealStep(0);
+      });
+      socket.on('game:categoryRevealed', () => setRevealStep(s => s + 1));
       socket.on('game:finalWager', ({ category }) =>
         setGame(g => ({ ...g, phase: 'final-wager', fjCategory: category, wagersSubmitted: [] })));
       socket.on('game:wagerSubmitted', ({ playerName }) =>
@@ -91,7 +101,14 @@ export default function HostPage() {
         </a>
       </div>
       {phase === 'lobby' && <HostLobby game={game} gameCode={gameCode} boardName={board.name} />}
-      {phase === 'board' && <HostBoard game={game} gameCode={gameCode} board={board} />}
+      {phase === 'board' && !(revealCats && revealStep <= revealCats.length) && <HostBoard game={game} gameCode={gameCode} board={board} />}
+      {revealCats && revealStep <= revealCats.length && (
+        <HostReveal
+          categories={revealCats}
+          step={revealStep}
+          onReveal={() => socket.emit('host:revealCategory')}
+        />
+      )}
       {(phase === 'clue' || phase === 'judging') && (
         <HostClue
           game={game}
@@ -425,6 +442,55 @@ function HostFinalReveal({ game }) {
         style={{ marginTop: 16, padding: '12px 32px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>
         Reveal Next ({revealed.length + 1} of {(game.players || []).length}) →
       </button>
+    </div>
+  );
+}
+
+function HostReveal({ categories, step, onReveal }) {
+  const isIntro = step === 0;
+  const allRevealed = step >= categories.length;
+
+  return (
+    <div style={{ textAlign: 'center', padding: 32 }}>
+      <div style={{ fontSize: 12, color: 'var(--color-muted)', letterSpacing: 3, marginBottom: 24 }}>
+        {isIntro ? 'INTRO CARD' : `CATEGORY ${step} OF ${categories.length} REVEALED`}
+      </div>
+      <div style={{ marginBottom: 28, display: 'inline-block', textAlign: 'left' }}>
+        {categories.map((name, i) => (
+          <div key={i} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 16px',
+            marginBottom: 4,
+            borderRadius: 6,
+            background: i < step ? 'var(--bg-panel)' : 'transparent',
+            color: i < step ? 'var(--color-white)' : 'var(--color-muted)',
+          }}>
+            <span style={{ color: 'var(--color-green)', width: 16, flexShrink: 0 }}>
+              {i < step ? '✓' : ''}
+            </span>
+            <span style={{ fontSize: 14, letterSpacing: 1 }}>{name}</span>
+          </div>
+        ))}
+      </div>
+      <div>
+        <button
+          onClick={onReveal}
+          style={{
+            padding: '14px 40px',
+            background: '#1d4ed8',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            fontSize: 16,
+            fontWeight: 'bold',
+            cursor: 'pointer',
+          }}
+        >
+          {allRevealed ? 'Show Board →' : 'Reveal Next →'}
+        </button>
+      </div>
     </div>
   );
 }
