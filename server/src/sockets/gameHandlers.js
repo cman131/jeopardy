@@ -366,6 +366,12 @@ function registerGameHandlers(io, socket) {
     }
   });
 
+  socket.on('host:revealCategory', () => {
+    const entry = _getHostEntry(socket);
+    if (!entry) return;
+    io.to(_gameCodeFor(socket)).emit('game:categoryRevealed');
+  });
+
   socket.on('host:endGame', async () => {
     const entry = _getHostEntry(socket);
     if (!entry) return;
