@@ -50,9 +50,9 @@ pm2 save
 
 echo "==> Configuring PM2 startup (auto-start on reboot)"
 # Capture and run the startup command PM2 emits
-PM2_STARTUP=$(pm2 startup | grep "sudo" | tail -1)
+PM2_STARTUP=$(pm2 startup 2>&1 | grep "sudo" | tail -1)
 if [[ -n "$PM2_STARTUP" ]]; then
-  eval "$PM2_STARTUP"
+  eval "$PM2_STARTUP" || true
 fi
 
 echo "==> Configuring nginx"
