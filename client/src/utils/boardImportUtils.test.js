@@ -97,16 +97,16 @@ describe('parseBuzzingaCsv', () => {
     expect(warnings).toBe(0);
   });
 
-  it('maps IMAGE clue to image type with mediaHash and topCaption as question', () => {
+  it('maps IMAGE clue to image type with mediaUrl resolved from hash', () => {
     const row =
       '1,1,Cat1,,1,,abc123hash,The answer,FALSE,IMAGE,Name the movie,,,TEXT,,,none,FALSE,FALSE';
     const { board, warnings } = parseBuzzingaCsv(buildCsv(row));
     const clue = board.round1.categories[0].clues[0];
     expect(clue.type).toBe('image');
     expect(clue.question).toBe('Name the movie');
-    expect(clue.mediaHash).toBe('abc123hash');
-    expect(clue.mediaUrl).toBe('');
-    expect(warnings).toBe(1);
+    expect(clue.mediaUrl).toBe('https://buzzinga.s3.us-east-2.amazonaws.com/abc123hash');
+    expect(clue.mediaHash).toBe('');
+    expect(warnings).toBe(0);
   });
 
   it('maps VIDEO clue to video type with mediaUrl and no mediaHash', () => {
@@ -121,16 +121,16 @@ describe('parseBuzzingaCsv', () => {
     expect(warnings).toBe(0);
   });
 
-  it('maps AUDIO clue to audio type with mediaHash', () => {
+  it('maps AUDIO clue to audio type with mediaUrl resolved from hash', () => {
     const row =
       '1,1,Cat1,,1,,def456hash,Song name,FALSE,AUDIO,Name the song,,,TEXT,,,none,FALSE,FALSE';
     const { board, warnings } = parseBuzzingaCsv(buildCsv(row));
     const clue = board.round1.categories[0].clues[0];
     expect(clue.type).toBe('audio');
     expect(clue.question).toBe('Name the song');
-    expect(clue.mediaHash).toBe('def456hash');
-    expect(clue.mediaUrl).toBe('');
-    expect(warnings).toBe(1);
+    expect(clue.mediaUrl).toBe('https://buzzinga.s3.us-east-2.amazonaws.com/def456hash');
+    expect(clue.mediaHash).toBe('');
+    expect(warnings).toBe(0);
   });
 
   it('maps the final jeopardy row correctly', () => {
