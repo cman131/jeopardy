@@ -18,8 +18,8 @@ DOMAIN="$1"
 echo "==> Installing certbot"
 sudo apt-get install -y certbot python3-certbot-nginx
 
-echo "==> Obtaining certificate for $DOMAIN"
-sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --redirect \
+echo "==> Obtaining certificate for $DOMAIN and www.$DOMAIN"
+sudo certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" --non-interactive --agree-tos --redirect \
   --email "admin@$(echo "$DOMAIN" | cut -d. -f2-)"
 
 echo "==> Verifying auto-renewal timer"
@@ -28,5 +28,5 @@ sudo systemctl start certbot.timer
 systemctl status certbot.timer --no-pager
 
 echo ""
-echo "HTTPS enabled. App is live at https://$DOMAIN"
+echo "HTTPS enabled. App is live at https://$DOMAIN (and https://www.$DOMAIN)"
 echo "Certificates auto-renew via systemd — no action needed."

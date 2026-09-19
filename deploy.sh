@@ -57,7 +57,7 @@ fi
 
 echo "==> Configuring nginx"
 if [[ -n "$DOMAIN" ]]; then
-  SERVER_NAME="$DOMAIN"
+  SERVER_NAME="$DOMAIN www.$DOMAIN"
   REMOVE_DEFAULT=false
 else
   SERVER_NAME="_"
@@ -110,8 +110,8 @@ sudo ufw --force enable
 echo ""
 if [[ -n "$DOMAIN" ]]; then
   echo "Deploy complete. App is running at http://$DOMAIN"
-  echo "Note: point your DNS A record for $DOMAIN to $(hostname -I | awk '{print $1}')"
-  echo "To enable HTTPS: sudo certbot --nginx -d $DOMAIN"
+  echo "Note: point DNS A records for $DOMAIN and www.$DOMAIN to $(hostname -I | awk '{print $1}')"
+  echo "To enable HTTPS: ./setup-ssl.sh $DOMAIN"
 else
   echo "Deploy complete. App is running at http://$(hostname -I | awk '{print $1}')"
 fi
