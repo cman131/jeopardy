@@ -27,15 +27,8 @@ echo "==> Restarting server"
 pm2 restart jeopardy-server
 
 if [[ -n "$DOMAIN" ]]; then
-  echo "==> Updating nginx server_name to include www.$DOMAIN"
-  sudo sed -i "s/server_name $DOMAIN;/server_name $DOMAIN www.$DOMAIN;/" \
-    /etc/nginx/sites-available/jeopardy
-  sudo nginx -t
-  sudo systemctl reload nginx
-
-  echo "==> Expanding SSL certificate to include www.$DOMAIN"
-  sudo certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" --non-interactive --agree-tos --redirect \
-    --email "admin@$(echo "$DOMAIN" | cut -d. -f2-)"
+  echo "==> Re-running SSL setup to add www.$DOMAIN"
+  "$PROJECT_DIR/setup-ssl.sh" "$DOMAIN"
 fi
 
 echo "Done."
