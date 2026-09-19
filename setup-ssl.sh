@@ -20,8 +20,9 @@ EMAIL="admin@$(echo "$DOMAIN" | cut -d. -f2-)"
 echo "==> Installing certbot"
 sudo apt-get install -y certbot
 
-echo "==> Stopping nginx temporarily for ACME challenge"
-sudo systemctl stop nginx
+echo "==> Stopping any services holding port 80"
+sudo systemctl stop nginx 2>/dev/null || true
+sudo systemctl stop apache2 2>/dev/null || true
 
 echo "==> Obtaining certificate for $DOMAIN and www.$DOMAIN"
 sudo certbot certonly --standalone \
