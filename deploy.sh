@@ -105,6 +105,7 @@ sudo systemctl reload nginx
 echo "==> Configuring firewall"
 sudo ufw allow OpenSSH
 sudo ufw allow 'Nginx Full'
+sudo ufw allow 8096
 sudo ufw --force enable
 
 echo ""
