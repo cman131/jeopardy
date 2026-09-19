@@ -34,6 +34,10 @@ cd "$PROJECT_DIR/client"
 npm install
 npm run build
 
+echo "==> Setting permissions for nginx (www-data)"
+chmod o+x "$HOME" "$PROJECT_DIR" "$PROJECT_DIR/client" "$PROJECT_DIR/client/dist"
+chmod -R o+r "$PROJECT_DIR/client/dist"
+
 echo "==> Installing server dependencies"
 cd "$PROJECT_DIR/server"
 npm install --omit=dev
