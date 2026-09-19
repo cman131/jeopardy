@@ -2,9 +2,14 @@
 set -euo pipefail
 
 # Run from the project root after cloning:
-#   chmod +x deploy.sh && ./deploy.sh
+#   chmod +x deploy.sh && ./deploy.sh [domain]
+#
+# Examples:
+#   ./deploy.sh                          # catch-all on port 80
+#   ./deploy.sh jeopardy.conorwright.net # serve only on that subdomain
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOMAIN="${1:-}"
 
 echo "==> Installing system dependencies"
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -51,10 +56,18 @@ if [[ -n "$PM2_STARTUP" ]]; then
 fi
 
 echo "==> Configuring nginx"
+if [[ -n "$DOMAIN" ]]; then
+  SERVER_NAME="$DOMAIN"
+  REMOVE_DEFAULT=false
+else
+  SERVER_NAME="_"
+  REMOVE_DEFAULT=true
+fi
+
 sudo tee /etc/nginx/sites-available/jeopardy > /dev/null <<NGINX
 server {
     listen 80;
-    server_name _;
+    server_name $SERVER_NAME;
 
     root $PROJECT_DIR/client/dist;
     index index.html;
@@ -82,7 +95,9 @@ server {
 NGINX
 
 sudo ln -sf /etc/nginx/sites-available/jeopardy /etc/nginx/sites-enabled/jeopardy
-sudo rm -f /etc/nginx/sites-enabled/default
+if [[ "$REMOVE_DEFAULT" == "true" ]]; then
+  sudo rm -f /etc/nginx/sites-enabled/default
+fi
 sudo nginx -t
 sudo systemctl enable nginx
 sudo systemctl reload nginx
@@ -93,4 +108,10 @@ sudo ufw allow 'Nginx Full'
 sudo ufw --force enable
 
 echo ""
-echo "Deploy complete. App is running at http://$(hostname -I | awk '{print $1}')"
+if [[ -n "$DOMAIN" ]]; then
+  echo "Deploy complete. App is running at http://$DOMAIN"
+  echo "Note: point your DNS A record for $DOMAIN to $(hostname -I | awk '{print $1}')"
+  echo "To enable HTTPS: sudo certbot --nginx -d $DOMAIN"
+else
+  echo "Deploy complete. App is running at http://$(hostname -I | awk '{print $1}')"
+fi
