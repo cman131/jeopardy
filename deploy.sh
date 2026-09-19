@@ -58,10 +58,8 @@ fi
 echo "==> Configuring nginx"
 if [[ -n "$DOMAIN" ]]; then
   SERVER_NAME="$DOMAIN www.$DOMAIN"
-  REMOVE_DEFAULT=false
 else
   SERVER_NAME="_"
-  REMOVE_DEFAULT=true
 fi
 
 sudo tee /etc/nginx/sites-available/jeopardy > /dev/null <<NGINX
@@ -95,9 +93,7 @@ server {
 NGINX
 
 sudo ln -sf /etc/nginx/sites-available/jeopardy /etc/nginx/sites-enabled/jeopardy
-if [[ "$REMOVE_DEFAULT" == "true" ]]; then
-  sudo rm -f /etc/nginx/sites-enabled/default
-fi
+sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl enable nginx
 sudo systemctl reload nginx
